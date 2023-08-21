@@ -1,0 +1,13 @@
+[package]
+name = "term-finder"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossterm = "0.27.0"
+ratatui = { version = "0.22.0", features = ["all-widgets"]}
+anyhow = "1.0.74"
+futures = "0.3"
+viuer = "0.6"
