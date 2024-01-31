@@ -17,7 +17,6 @@ use crossterm::{
     event::{self, MouseEvent},
 };
 
-
 fn main() -> Result<()> {
     let mut terminal = setup_terminal()
         .context("setup failed")?;
@@ -100,6 +99,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Resul
                     break;
                 }
             }
+            //THIS IS VRY NOT SOGOOD
             Err(..) => (),
         }
     }

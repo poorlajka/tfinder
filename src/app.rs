@@ -8,6 +8,7 @@ pub struct App {
     pub path_trail: PathTrail,
     pub first_pane: FilePane,
     pub second_pane: FilePane,
+    pub prompt: Prompt,
 }
 
 pub enum Component {
@@ -15,6 +16,49 @@ pub enum Component {
     FirstPane,
     SecondPane,
 }
+
+pub struct Prompt {
+    is_active: bool,
+    command: Command,
+    input: String,
+}
+
+pub enum Command {
+    Create,
+    Rename,
+    Move,
+    Delete,
+    Open,
+    Help,
+    Search,
+    Fill,
+}
+
+impl Prompt {
+    pub fn begin_prompt(&mut self, command: Command) {
+        self.is_active = true;
+        self.command = command;
+        self.input.clear();
+    }
+
+    pub fn enter_input(&mut self, input: &str) {
+        self.input.push_str(input);
+    }
+
+    pub fn is_active(&mut self) -> bool{
+        return self.is_active();
+    }
+
+    pub fn run_command(&self) {
+        match(self.command) {
+            Command::Create => {
+            }
+            _ => {
+            }
+        }
+    }
+}
+
 
 impl App {
     pub fn get_hovered_comp(&self, event: MouseEvent) -> Option<Component> {
