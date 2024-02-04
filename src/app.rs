@@ -3,13 +3,19 @@ use crate::DirEntry;
 use crate::ListState;
 use crate::MouseEvent;
 use std::path::PathBuf;
+use std::path::Path;
+use crate::config;
+use ratatui::prelude::Rect;
 
 pub struct App {
     pub path_trail: PathTrail,
     pub first_pane: FilePane,
     pub second_pane: FilePane,
     pub prompt: Prompt,
+    pub rect: Rect,
+    pub config: config::Config,
 }
+
 
 pub enum Component {
     PathTrail,
@@ -18,9 +24,12 @@ pub enum Component {
 }
 
 pub struct Prompt {
-    is_active: bool,
-    command: Command,
-    input: String,
+    pub is_active: bool,
+    pub command: Command,
+    pub input: String,
+    pub rect: Rect,
+    pub root: PathBuf,
+    pub tick: i32,
 }
 
 pub enum Command {
@@ -32,6 +41,20 @@ pub enum Command {
     Help,
     Search,
     Fill,
+    None,
+}
+
+impl Command {
+    pub fn get_prompt(&self) -> String {
+        match self {
+            Self::Create => {
+                "Name of file to create: ".to_string()
+            }
+            _ => {
+                "".to_string()
+            }
+        }
+    }
 }
 
 impl Prompt {
@@ -41,26 +64,91 @@ impl Prompt {
         self.input.clear();
     }
 
-    pub fn enter_input(&mut self, input: &str) {
-        self.input.push_str(input);
+    pub fn enter_input(&mut self, input: char) {
+        self.input.push(input);
+    }
+
+    pub fn delete_input(&mut self) {
+        self.input.pop();
+    }
+    pub fn cancel(&mut self) {
+        self.is_active = false;
+        self.input.clear();
+        self.command = Command::None;
     }
 
     pub fn is_active(&mut self) -> bool{
-        return self.is_active();
+        return self.is_active;
     }
 
-    pub fn run_command(&self) {
-        match(self.command) {
+    pub fn run_command(&mut self) {
+        match self.command {
             Command::Create => {
+                finder::create_file(&self.root, self.input.clone());
             }
             _ => {
             }
         }
+        self.input.clear();
+        self.is_active = false;
     }
 }
 
 
 impl App {
+    pub fn new(config: config::Config, term_size: &Rect, path: &PathBuf) -> Self {
+        let mut app = App {
+            first_pane: FilePane {
+                height: 100,
+                width: 40,
+                files: StatefulList::with_items(Vec::new()),
+                current_path: PathBuf::new(),
+                entries: Vec::new(),
+                rect: Rect { x: 0, y: 2, 
+                    width: term_size.width/3, 
+                    height: term_size.height - 2 - 2, 
+                }, 
+                
+            },
+            second_pane: FilePane {
+                height: 100,
+                width: 40,
+                files: StatefulList::with_items(Vec::new()),
+                current_path: PathBuf::new(),
+                entries: Vec::new(),
+                rect: Rect { x: term_size.width/3, y: 2, 
+                    width: term_size.width/3, 
+                    height: term_size.height - 2 - 2, 
+                }, 
+            },
+            path_trail: PathTrail {
+                height: 2,
+                width: 30,
+                paths: Vec::new(),
+                hovered_path: None,
+                rect: Rect::new(1,1,1,1),
+            },
+            prompt: Prompt {
+                is_active: false,
+                command: Command::None,
+                input: String::new(),
+                rect: Rect::new(0,term_size.height - 1,term_size.width,1),
+                root: PathBuf::from("/home/viktor/programming/term-finder/"),
+                tick: 0,
+            },
+            rect: *term_size,
+            config: config,
+        };
+
+
+        app.first_pane.load_path(path.to_path_buf());
+        //app.path_trail.paths = vec![("hello".to_string(), PathBuf::new())];
+        app.path_trail.load_path(&path.to_path_buf());
+        app.first_pane.files.state.select(None);
+        app.second_pane.files.state.select(None);
+        return app;
+    }
+
     pub fn get_hovered_comp(&self, event: MouseEvent) -> Option<Component> {
         let (column, row) = (event.column, event.row);
         if row < self.path_trail.height {
@@ -81,6 +169,7 @@ pub struct PathTrail {
     pub width: u16,
     pub paths: Vec<(String, PathBuf)>,
     pub hovered_path: Option<usize>,
+    pub rect: Rect,
 }
 
 struct Interval {
@@ -126,6 +215,7 @@ pub struct FilePane {
     pub files: StatefulList<(String, usize)>,
     pub entries: Vec<DirEntry>,
     pub current_path: PathBuf,
+    pub rect: Rect,
 }
 
 impl FilePane {
@@ -180,6 +270,10 @@ impl FilePane {
                 self.entries.remove(i);
             }
         }
+    }
+    pub fn update(&mut self) {
+        let path = &self.current_path;
+        self.load_path(path.to_path_buf());
     }
 }
 

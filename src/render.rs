@@ -1,5 +1,3 @@
-use ratatui::widgets::Paragraph;
-
 use crate::app;
 use crate::{
     Backend,
@@ -13,63 +11,23 @@ use crate::{
     Modifier,
     Rect,
     Style,
+    Paragraph,
 };
+use crate::config;
 
 pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &mut app::App) {
+
+    //I don't like any of these being mut (app also!), but the statefull list requires it so rip
+    render_trail(frame, &mut app.path_trail);
+    render_pane(frame, &mut app.first_pane, &app.config);
+    render_pane(frame, &mut app.second_pane, &app.config);
+    render_prompt(frame, &mut app.prompt);
+
+    //TODO REDO THE THIRD PANE RENDERING THIS IS UGLY AF
     let (fwidth, fheight) = (frame.size().width, frame.size().height);
 
     app.second_pane.width = fwidth / 3;
     app.first_pane.width = fwidth / 3;
-
-    let trail_height = app.path_trail.height;
-    let first_pane_list = get_pane_list(&app.first_pane);
-    let second_pane_list = get_pane_list(&app.second_pane);
-
-    frame.render_stateful_widget(
-        first_pane_list,
-        Rect::new(0, trail_height, fwidth / 3, fheight - trail_height - 2),
-        &mut app.first_pane.files.state,
-    );
-
-    frame.render_stateful_widget(
-        second_pane_list,
-        Rect::new(
-            fwidth / 3,
-            trail_height,
-            fwidth / 3,
-            fheight - trail_height - 2,
-        ),
-        &mut app.second_pane.files.state,
-    );
-
-    let mut paragraph = Paragraph::new("").style(Style::default().fg(Color::Blue));
-    let mut pos: usize = 0;
-    for (i, (name, _)) in app.path_trail.paths.iter_mut().enumerate() {
-        let mut paragraph = Paragraph::new(name.to_string());
-        if let Some(index) = app.path_trail.hovered_path {
-            if index == i {
-                paragraph = paragraph.style(Style::default().fg(Color::LightYellow));
-            } else {
-                paragraph = paragraph.style(Style::default().fg(Color::White));
-            }
-        } else {
-            paragraph = paragraph.style(Style::default().fg(Color::White));
-        }
-        let mut width = name.len();
-        if width > 20 {
-            width = 20;
-        }
-        frame.render_widget(paragraph, Rect::new(pos as u16, 0, width as u16, 2));
-        pos += width;
-        frame.render_widget(Paragraph::new(" > "), Rect::new(pos as u16, 0, 3, 2));
-        pos += 3;
-    }
-
-    let commands = Paragraph::new(
-        "C Create    R Rename    M Move    D Delete    O Open    H Help    / Search    F fill",
-    )
-    .style(Style::default().fg(Color::White).bg(Color::Black));
-    frame.render_widget(commands, Rect::new(0, fheight - 1, fwidth, 1));
 
     let ascii_folder = "
 ░░░░░░░░░░░░░░░░░░░░
@@ -147,25 +105,9 @@ pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &mut app::App) {
             }
         }
     }
-
-    /*
-    get_path_trail(&app.path_trail, &mut paragraph);
-
-    if let Some(index) = app.path_trail.hovered_path {
-        frame.render_widget(
-            paragraph.style(Style::default().fg(Color::LightBlue)),
-            Rect::new(0, 0, fwidth, app.path_trail.height),
-        );
-    } else {
-        frame.render_widget(
-            paragraph.style(Style::default().fg(Color::White)),
-            Rect::new(0, 0, fwidth, app.path_trail.height),
-        );
-    }
-    */
 }
 
-fn get_pane_list(file_pane: &app::FilePane) -> List<'static> {
+fn get_pane_list(file_pane: &app::FilePane, config: &config::Config) -> List<'static> {
     let first_pane_files: Vec<ListItem> = file_pane
         .files
         .items
@@ -181,24 +123,75 @@ fn get_pane_list(file_pane: &app::FilePane) -> List<'static> {
         .style(Style::default().fg(Color::White))
         .highlight_style(
             Style::default()
-                .bg(Color::LightYellow)
+                .bg(config.colors.main)
                 .fg(Color::Black)
                 .add_modifier(Modifier::ITALIC)
                 .add_modifier(Modifier::BOLD),
         )
 }
+pub fn render_pane<B: Backend>(frame: &mut Frame<B>, pane: &mut app::FilePane, config: &config::Config) {
 
-fn get_path_trail(path_trail: &app::PathTrail, paragraph: &mut Paragraph) {
-    let mut dir_trail = String::new();
-    let exclude_last = 0..path_trail.paths.len() - 1;
-
-    for (name, _) in &path_trail.paths[exclude_last] {
-        dir_trail += name;
-        dir_trail += " > ";
-    }
-    if let Some((name, _)) = path_trail.paths.last() {
-        dir_trail += name;
-    }
-
-    *paragraph = Paragraph::new(dir_trail)
+    frame.render_stateful_widget(
+        get_pane_list(&pane, config),
+        pane.rect,
+        &mut pane.files.state,
+    );
 }
+
+pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &mut app::PathTrail) {
+    let mut pos: usize = 0;
+    for (i, (name, _)) in trail.paths.iter_mut().enumerate() {
+        let mut paragraph = Paragraph::new(name.to_string());
+        if let Some(index) = trail.hovered_path {
+            if index == i {
+                paragraph = paragraph.style(Style::default().fg(Color::LightMagenta));
+            } else {
+                paragraph = paragraph.style(Style::default().fg(Color::White));
+            }
+        } else {
+            paragraph = paragraph.style(Style::default().fg(Color::White));
+        }
+        let mut width = name.len();
+        if width > 20 {
+            width = 20;
+        }
+        frame.render_widget(paragraph, Rect::new(pos as u16, 0, width as u16, 2));
+        pos += width;
+        frame.render_widget(Paragraph::new(" > "), Rect::new(pos as u16, 0, 3, 2));
+        pos += 3;
+    }
+}
+
+pub fn render_prompt<B: Backend>(frame: &mut Frame<B>, prompt: &mut app::Prompt) {
+
+    prompt.tick+=1;
+    let current_prompt = if prompt.is_active() {
+
+        if prompt.tick < 5 {
+            Paragraph::new(
+                prompt.command.get_prompt() + &prompt.input.clone() + "_",
+            )
+            .style(Style::default().fg(Color::White).bg(Color::Black))
+        }
+        else {
+            if prompt.tick > 10 {
+                prompt.tick = 0;
+            }
+
+            Paragraph::new(
+                prompt.command.get_prompt() + &prompt.input.clone() + " ",
+            )
+            .style(Style::default().fg(Color::White).bg(Color::Black))
+        }
+    }
+    else {
+
+        Paragraph::new(
+            "C Create    R Rename    M Move    D Delete    O Open    H Help    / Search    F fill",
+        )
+        .style(Style::default().fg(Color::White).bg(Color::Black))
+    };
+
+    frame.render_widget(current_prompt, prompt.rect);
+}
+

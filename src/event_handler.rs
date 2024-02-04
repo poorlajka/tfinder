@@ -17,17 +17,22 @@ pub fn handle_events(app: &mut app::App) -> Result<bool> {
 
     match read()? {
         Event::Key(event) => {
-            let handle = handle_key_event(event, app);
-            if handle {
-                return Ok(false);
+            //This is how I quit right now kinda ugly though
+            if !handle_key_event(event, app) {
+                return Ok(true);
             }
-            return Ok(true);
         }
         Event::Mouse(event) => {
             handle_mouse_event(event, app);
         }
         _ => (),
     }
+
+    app.first_pane.update();
+    app.first_pane.update();
+
+    app.prompt.root = app.second_pane.current_path.clone();
+    app.prompt.root.push("/");
 
     Ok(false)
 }
@@ -154,48 +159,62 @@ fn handle_second_pane_me(event: MouseEvent, app: &mut app::App) {
     }
 }
 
-fn prompt_file_creation(app: &mut app::App) {
-
-}
-
 fn handle_key_event(event: KeyEvent, app: &mut app::App) -> bool {
 
     if app.prompt.is_active() {
-        let input = format!("{:?}", event.code);
-        app.prompt.enter_input(&input);
-    }
+        match event.code {
+            KeyCode::Enter => {
+                app.prompt.run_command();
+            }
+            KeyCode::Backspace => {
+                app.prompt.delete_input();
+            }
+            KeyCode::Esc => {
+                app.prompt.cancel();
+            }
+            KeyCode::Char('q') => {
+                return false;
+            }
+            KeyCode::Char(char) => {
 
+                app.prompt.enter_input(char);
+            }
+            _ => {
+            }
+        }
+    }
     else {
         match event.code {
             KeyCode::Char('c') => {
                 app.prompt.begin_prompt(app::Command::Create);
             }
             KeyCode::Char('r') => {
-                app.prompt.begin_prompt(app::Command::Rename);
+                //app.prompt.begin_prompt(app::Command::Rename);
             }
             KeyCode::Char('d') => {
-                app.prompt.begin_prompt(app::Command::Move);
+                //app.prompt.begin_prompt(app::Command::Move);
             }
             KeyCode::Char('m') => {
-                app.prompt.begin_prompt(app::Command::Delete);
+                //app.prompt.begin_prompt(app::Command::Delete);
             }
             KeyCode::Char('o') => {
-                app.prompt.begin_prompt(app::Command::Open);
+                //app.prompt.begin_prompt(app::Command::Open);
             }
             KeyCode::Char('h') => {
-                app.prompt.begin_prompt(app::Command::Help);
+                //app.prompt.begin_prompt(app::Command::Help);
             }
             KeyCode::Char('/') => {
-                app.prompt.begin_prompt(app::Command::Search);
+                //app.prompt.begin_prompt(app::Command::Search);
             }
             KeyCode::Char('f') => {
-                app.prompt.begin_prompt(app::Command::Fill);
+                //app.prompt.begin_prompt(app::Command::Fill);
             }
             KeyCode::Char('q') => {
                 return false;
             }
             _ => (),
         }
-        true
-        }
+    }
+    true
+
 }

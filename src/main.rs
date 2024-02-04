@@ -2,8 +2,11 @@ mod app;
 mod event_handler;
 mod finder;
 mod render;
+mod config;
+
 
 use std::fs::DirEntry;
+use std::env;
 use std::path::{Path, PathBuf};
 use std::io::{stdout, Stdout};
 use std::time::Duration;
@@ -18,14 +21,20 @@ use crossterm::{
 };
 
 fn main() -> Result<()> {
+
+    //println!("{:#?}", config);
+
     let mut terminal = setup_terminal()
         .context("setup failed")?;
 
     run_app(&mut terminal, Duration::new(13, 13))
         .context("app loop failed")?;
 
+
+
     restore_terminal(&mut terminal)
         .context("restore terminal failed")?;
+
 
     Ok(())
 }
@@ -45,48 +54,21 @@ fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
 }
 
 fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
-    disable_raw_mode()
-        .context("failed to disable raw mode")?;
-
     execute!(terminal.backend_mut(), LeaveAlternateScreen)
         .context("unable to switch to main screen")?;
 
     terminal.show_cursor()
-        .context("unable to show cursor")
+        .context("unable to show cursor")?;
+
+    disable_raw_mode()
+        .context("failed to disable raw mode")
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Result<()> {
-    let path = Path::new("C:/Users/notso/");
 
-    let mut app = app::App {
-        first_pane: app::FilePane {
-            height: 100,
-            width: 40,
-            files: app::StatefulList::with_items(Vec::new()),
-            current_path: PathBuf::new(),
-            entries: Vec::new(),
-        },
-        second_pane: app::FilePane {
-            height: 100,
-            width: 40,
-            files: app::StatefulList::with_items(Vec::new()),
-            current_path: PathBuf::new(),
-            entries: Vec::new(),
-        },
-        path_trail: app::PathTrail {
-            height: 2,
-            width: 30,
-            paths: Vec::new(),
-            hovered_path: None,
-        },
-    };
+    let config = config::parse();
+    let mut app = app::App::new(config, &terminal.size()?, &env::current_dir()?);
 
-
-    app.first_pane.load_path(path.to_path_buf());
-    //app.path_trail.paths = vec![("hello".to_string(), PathBuf::new())];
-    app.path_trail.load_path(&path.to_path_buf());
-    app.first_pane.files.state.select(None);
-    app.second_pane.files.state.select(None);
 
     loop {
         let _ = terminal.draw(|frame| render::render_app(frame, &mut app));
@@ -100,8 +82,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Resul
                 }
             }
             //THIS IS VRY NOT SOGOOD
-            Err(..) => (),
+            Err(..) => {
+                break;
+            },
         }
     }
+    println!("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW");
     Ok(())
 }
