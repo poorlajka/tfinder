@@ -15,20 +15,14 @@ use crate::{
 };
 use crate::config;
 
-pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &mut app::App) {
+pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &app::App, render_config: &config::Config) {
 
-    //I don't like any of these being mut (app also!), but the statefull list requires it so rip
-    render_trail(frame, &mut app.path_trail);
-    render_pane(frame, &mut app.first_pane, &app.config);
-    render_pane(frame, &mut app.second_pane, &app.config);
-    render_prompt(frame, &mut app.prompt);
+    render_trail(frame, &app.path_trail);
+    render_pane(frame, &app.first_pane, render_config, app.focus == app::Component::FirstPane);
+    render_pane(frame, &app.second_pane, render_config, app.focus == app::Component::SecondPane);
+    render_prompt(frame, &app.prompt);
 
-    //TODO REDO THE THIRD PANE RENDERING THIS IS UGLY AF
-    let (fwidth, fheight) = (frame.size().width, frame.size().height);
-
-    app.second_pane.width = fwidth / 3;
-    app.first_pane.width = fwidth / 3;
-
+    //TODO REDO THE THIRD PANE (Commented block below) RENDERING THIS IS UGLY AF
     let ascii_folder = "
 ░░░░░░░░░░░░░░░░░░░░
 ░▒▒▒▒▒░░░░░░░░░░░░░░
@@ -55,6 +49,11 @@ pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &mut app::App) {
 ░░░▓▒▒▒▒▒▒▒▒▒▒▒▒▓░░░
 ";
 
+    /*
+    let (fwidth, fheight) = (frame.size().width, frame.size().height);
+
+    app.second_pane.width = fwidth / 3;
+    app.first_pane.width = fwidth / 3;
     let pane2_state = &app.second_pane.files.state;
     match pane2_state.selected() {
         Some(index) => {
@@ -105,9 +104,17 @@ pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &mut app::App) {
             }
         }
     }
+    */
 }
 
-fn get_pane_list(file_pane: &app::FilePane, config: &config::Config) -> List<'static> {
+fn get_pane_list(file_pane: &app::FilePane, config: &config::Config, is_focused: bool) -> List<'static> {
+    let color = if is_focused {
+        config.colors.main
+    }
+    else {
+        Color::DarkGray
+    };
+
     let first_pane_files: Vec<ListItem> = file_pane
         .files
         .items
@@ -123,24 +130,24 @@ fn get_pane_list(file_pane: &app::FilePane, config: &config::Config) -> List<'st
         .style(Style::default().fg(Color::White))
         .highlight_style(
             Style::default()
-                .bg(config.colors.main)
+                .bg(color)
                 .fg(Color::Black)
                 .add_modifier(Modifier::ITALIC)
                 .add_modifier(Modifier::BOLD),
         )
 }
-pub fn render_pane<B: Backend>(frame: &mut Frame<B>, pane: &mut app::FilePane, config: &config::Config) {
+pub fn render_pane<B: Backend>(frame: &mut Frame<B>, pane: &app::FilePane, config: &config::Config, is_focused: bool) {
 
     frame.render_stateful_widget(
-        get_pane_list(&pane, config),
+        get_pane_list(&pane, config, is_focused),
         pane.rect,
-        &mut pane.files.state,
+        &mut pane.files.state.clone(),
     );
 }
 
-pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &mut app::PathTrail) {
+pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &app::PathTrail) {
     let mut pos: usize = 0;
-    for (i, (name, _)) in trail.paths.iter_mut().enumerate() {
+    for (i, (name, _)) in trail.paths.iter().enumerate() {
         let mut paragraph = Paragraph::new(name.to_string());
         if let Some(index) = trail.hovered_path {
             if index == i {
@@ -162,24 +169,20 @@ pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &mut app::PathTrail
     }
 }
 
-pub fn render_prompt<B: Backend>(frame: &mut Frame<B>, prompt: &mut app::Prompt) {
+pub fn render_prompt<B: Backend>(frame: &mut Frame<B>, prompt: &app::Prompt) {
 
-    prompt.tick+=1;
     let current_prompt = if prompt.is_active() {
 
         if prompt.tick < 5 {
             Paragraph::new(
-                prompt.command.get_prompt() + &prompt.input.clone() + "_",
+                prompt.get_prompt_string() + &prompt.input.clone() + "_",
             )
             .style(Style::default().fg(Color::White).bg(Color::Black))
         }
         else {
-            if prompt.tick > 10 {
-                prompt.tick = 0;
-            }
 
             Paragraph::new(
-                prompt.command.get_prompt() + &prompt.input.clone() + " ",
+                prompt.get_prompt_string() + &prompt.input.clone() + " ",
             )
             .style(Style::default().fg(Color::White).bg(Color::Black))
         }

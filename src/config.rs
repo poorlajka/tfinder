@@ -23,6 +23,9 @@ pub struct Colors {
 }
 
 fn parse_rbg(hex_code: &str) -> Result<Color, std::num::ParseIntError> {
+    if hex_code.chars().count() != 7 {
+        return Ok(Color::Red);
+    }
 
     let r: u8 = u8::from_str_radix(&hex_code[1..3], 16)?;
     let g: u8 = u8::from_str_radix(&hex_code[3..5], 16)?;
@@ -32,18 +35,20 @@ fn parse_rbg(hex_code: &str) -> Result<Color, std::num::ParseIntError> {
 }
 
 pub fn parse() -> Config {
+    //Todo these two expects should probably just return a default config file instead
     let config_str = fs::read_to_string("/home/viktor/programming/term-finder/settings.toml").expect("Failed to read Cargo.toml file");
     let preconfig: Preconfig = toml::from_str(&config_str).expect("Failed to read config file!");
+    let color_str = preconfig.colors.main.to_lowercase();
 
-    let color = if preconfig.colors.main.starts_with('#') {
-        match parse_rbg(preconfig.colors.main.as_str()) {
+    let color = if color_str.starts_with('#') {
+        match parse_rbg(&color_str) {
             Ok(color) => color,
             Err(_) => Color::Red,
         }
     }
 
     else {
-        match preconfig.colors.main.as_str() {
+        match color_str.as_str() {
             "black" => Color::Black,
             "red" => Color::Red,
             "green" => Color::Green,

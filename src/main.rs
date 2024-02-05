@@ -22,19 +22,14 @@ use crossterm::{
 
 fn main() -> Result<()> {
 
-    //println!("{:#?}", config);
-
     let mut terminal = setup_terminal()
         .context("setup failed")?;
 
     run_app(&mut terminal, Duration::new(13, 13))
         .context("app loop failed")?;
 
-
-
     restore_terminal(&mut terminal)
         .context("restore terminal failed")?;
-
 
     Ok(())
 }
@@ -57,6 +52,9 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
     execute!(terminal.backend_mut(), LeaveAlternateScreen)
         .context("unable to switch to main screen")?;
 
+    let mut stdout = stdout();
+    let _ = stdout.execute(event::DisableMouseCapture);
+
     terminal.show_cursor()
         .context("unable to show cursor")?;
 
@@ -66,12 +64,11 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Result<()> {
 
-    let config = config::parse();
-    let mut app = app::App::new(config, &terminal.size()?, &env::current_dir()?);
-
+    let render_config = config::parse();
+    let mut app = app::App::new(&terminal.size()?, &env::current_dir()?);
 
     loop {
-        let _ = terminal.draw(|frame| render::render_app(frame, &mut app));
+        let _ = terminal.draw(|frame| render::render_app(frame, &app, &render_config));
 
         let event_return = event_handler::handle_events(&mut app);
 
@@ -81,12 +78,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Resul
                     break;
                 }
             }
-            //THIS IS VRY NOT SOGOOD
+            //THIS Is not so Vry good me no likey fucking hell change later
             Err(..) => {
                 break;
             },
         }
     }
-    println!("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW");
     Ok(())
 }
