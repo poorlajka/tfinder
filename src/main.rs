@@ -2,8 +2,11 @@ mod app;
 mod event_handler;
 mod finder;
 mod render;
+mod command;
 mod config;
-
+mod prompt;
+mod file_pane;
+mod path_trail;
 
 use std::fs::DirEntry;
 use std::env;
@@ -25,11 +28,19 @@ fn main() -> Result<()> {
     let mut terminal = setup_terminal()
         .context("setup failed")?;
 
-    run_app(&mut terminal, Duration::new(13, 13))
-        .context("app loop failed")?;
+    let e = if let Err(e) = run_app(&mut terminal, Duration::new(13, 13)) {
+        Some(e)
+    } 
+    else {
+        None
+    };
 
     restore_terminal(&mut terminal)
         .context("restore terminal failed")?;
+
+    if let Some(err) = e {
+        println!("Error: {:?}", err);
+    }
 
     Ok(())
 }
@@ -64,7 +75,7 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Result<()> {
 
-    let render_config = config::parse();
+    let render_config = config::parse()?;
     let mut app = app::App::new(&terminal.size()?, &env::current_dir()?);
 
     loop {

@@ -1,3 +1,11 @@
 [colors]
-main = "LightBlue"
 
+[colors.file_panes]
+background = "Red" 
+border = "Blue" 
+hover = "Magenta" 
+selected_focus = "Magenta" 
+selected_no_focus = "Gray" 
+text_default = "Yellow" 
+
+[colors.path_trail]

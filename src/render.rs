@@ -14,6 +14,9 @@ use crate::{
     Paragraph,
 };
 use crate::config;
+use crate::prompt;
+use crate::file_pane;
+use crate::path_trail;
 
 pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &app::App, render_config: &config::Config) {
 
@@ -107,12 +110,12 @@ pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &app::App, render_confi
     */
 }
 
-fn get_pane_list(file_pane: &app::FilePane, config: &config::Config, is_focused: bool) -> List<'static> {
+fn get_pane_list(file_pane: &file_pane::FilePane, config: &config::Config, is_focused: bool) -> List<'static> {
     let color = if is_focused {
-        config.colors.main
+        config.colors.file_panes.selected_focus
     }
     else {
-        Color::DarkGray
+        config.colors.file_panes.selected_no_focus
     };
 
     let first_pane_files: Vec<ListItem> = file_pane
@@ -121,22 +124,22 @@ fn get_pane_list(file_pane: &app::FilePane, config: &config::Config, is_focused:
         .iter()
         .map(|i| {
             let lines = vec![Line::from(i.to_owned().0)];
-            ListItem::new(lines).style(Style::default().fg(Color::White))
+            ListItem::new(lines).style(Style::default().fg(config.colors.file_panes.text_default))
         })
         .collect();
 
     List::new(first_pane_files)
         .block(Block::default().borders(Borders::RIGHT))
-        .style(Style::default().fg(Color::White))
+        .style(Style::default().fg(config.colors.file_panes.border))
         .highlight_style(
             Style::default()
                 .bg(color)
-                .fg(Color::Black)
+                .fg(config.colors.file_panes.text_selected)
                 .add_modifier(Modifier::ITALIC)
                 .add_modifier(Modifier::BOLD),
         )
 }
-pub fn render_pane<B: Backend>(frame: &mut Frame<B>, pane: &app::FilePane, config: &config::Config, is_focused: bool) {
+pub fn render_pane<B: Backend>(frame: &mut Frame<B>, pane: &file_pane::FilePane, config: &config::Config, is_focused: bool) {
 
     frame.render_stateful_widget(
         get_pane_list(&pane, config, is_focused),
@@ -145,7 +148,7 @@ pub fn render_pane<B: Backend>(frame: &mut Frame<B>, pane: &app::FilePane, confi
     );
 }
 
-pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &app::PathTrail) {
+pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &path_trail::PathTrail) {
     let mut pos: usize = 0;
     for (i, (name, _)) in trail.paths.iter().enumerate() {
         let mut paragraph = Paragraph::new(name.to_string());
@@ -169,7 +172,7 @@ pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &app::PathTrail) {
     }
 }
 
-pub fn render_prompt<B: Backend>(frame: &mut Frame<B>, prompt: &app::Prompt) {
+pub fn render_prompt<B: Backend>(frame: &mut Frame<B>, prompt: &prompt::Prompt) {
 
     let current_prompt = if prompt.is_active() {
 

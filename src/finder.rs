@@ -23,3 +23,19 @@ pub fn create_file(root: &Path, name: String) -> io::Result<()> {
 
     Ok(())
 }
+
+pub fn rename_file(root: &Path, name: String, new_name: String) -> io::Result<()> {
+    let mut root_str = root.to_path_buf().into_os_string();
+    root_str.push("/");
+    root_str.push(name);
+    let path = Path::new(&root_str);
+
+    let _ = fs::rename(path, new_name)?;
+
+    Ok(())
+
+}
+
+pub fn move_file(root: &Path, name: String, new_name: String) -> io::Result<()> {
+    Ok(())
+}

@@ -1,5 +1,6 @@
 use crate::app;
 use crate::Duration;
+use crate::command::Command;
 
 use std::path::PathBuf;
 
@@ -37,6 +38,8 @@ pub fn handle_events(app: &mut app::App) -> Result<bool> {
 
     app.first_pane.update();
     app.second_pane.update();
+
+    app.path_trail.load_path(&app.first_pane.current_path);
 
 
     Ok(false)
@@ -266,6 +269,19 @@ fn move_right(app: &mut app::App) {
 fn move_left(app: &mut app::App) {
     match app.focus {
         app::Component::FirstPane => {
+            let path_len = app.path_trail.paths.len();
+            if path_len > 1 {
+                let path = &app.path_trail.paths[path_len -2].1;
+
+                app.second_pane.load_path(app.first_pane.current_path.clone());
+                app.second_pane.files.state.select(app.first_pane.files.state.selected());
+
+
+                app.first_pane.load_path(path.to_path_buf());
+                app.first_pane.files.state.select(Some(0));
+                app.path_trail.load_path(&path.to_path_buf());
+
+            }
         }
         app::Component::SecondPane => {
             app.focus = app::Component::FirstPane;
@@ -323,27 +339,27 @@ fn handle_key_event(event: KeyEvent, app: &mut app::App) -> bool {
                 move_right(app);
             }
             KeyCode::Char('c') => {
-                app.prompt.begin_prompt(app::Command::Create);
+                app.prompt.begin_prompt(Command::Create);
             }
             KeyCode::Char('r') => {
-                //app.prompt.begin_prompt(app::Command::Rename);
+                //app.prompt.begin_prompt(Command::Rename);
             }
             KeyCode::Char('d') => {
-                //app.prompt.begin_prompt(app::Command::Move);
+                //app.prompt.begin_prompt(Command::Move);
             }
             KeyCode::Char('m') => {
-                //app.prompt.begin_prompt(app::Command::Delete);
+                //app.prompt.begin_prompt(Command::Delete);
             }
             KeyCode::Char('o') => {
-                //app.prompt.begin_prompt(app::Command::Open);
+                //app.prompt.begin_prompt(Command::Open);
             }
             KeyCode::Char('/') => {
-                //app.prompt.begin_prompt(app::Command::Search);
+                //app.prompt.begin_prompt(Command::Search);
             }
             KeyCode::Char('f') => {
-                //app.prompt.begin_prompt(app::Command::Fill);
+                //app.prompt.begin_prompt(Command::Fill);
             }
-            KeyCode::Char('q') => {
+            KeyCode::Esc => {
                 return false;
             }
             _ => (),

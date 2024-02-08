@@ -1,46 +1,89 @@
-use std::fs;
 use toml;
 use serde::Deserialize;
 use crate::Color;
-use std::str::FromStr;
-
+use std::fs;
 
 #[derive(Debug, Deserialize)]
-pub struct Preconfig {
-    colors: Precolors,
+struct RawConfig {
+    pub colors: RawColors,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Precolors {
-    main: String,
+struct RawColors {
+    pub file_panes: RawFilePanesColors,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawFilePanesColors {
+    pub background: String,
+    pub border: String,
+    pub hover: String,
+    pub selected_focus: String,
+    pub selected_no_focus: String,
+    pub text_default: String,
+    pub text_selected: String,
 }
 
 pub struct Config {
     pub colors: Colors,
 }
+
 pub struct Colors {
-    pub main: Color,
+    pub file_panes: FilePanesColors,
 }
 
-fn parse_rbg(hex_code: &str) -> Result<Color, std::num::ParseIntError> {
-    if hex_code.chars().count() != 7 {
-        return Ok(Color::Red);
+pub struct FilePanesColors {
+    pub background: Color,
+    pub border: Color,
+    pub hover: Color,
+    pub selected_focus: Color,
+    pub selected_no_focus: Color,
+    pub text_default: Color,
+    pub text_selected: Color,
+}
+
+pub fn parse() -> Result<Config, std::io::Error> {
+
+    let config_str = fs::read_to_string("/home/viktor/programming/term-finder/settings.toml")?;
+    let raw_config: RawConfig = toml::from_str(&config_str)?;
+
+    Ok(Config::from_raw(&raw_config))
+}
+
+impl Config {
+    fn from_raw(raw_config: &RawConfig) -> Self {
+        Config {
+            colors: Colors::from_raw(&raw_config.colors),
+        }
     }
-
-    let r: u8 = u8::from_str_radix(&hex_code[1..3], 16)?;
-    let g: u8 = u8::from_str_radix(&hex_code[3..5], 16)?;
-    let b: u8 = u8::from_str_radix(&hex_code[5..7], 16)?;
-
-    Ok(Color::Rgb(r, g, b))
 }
 
-pub fn parse() -> Config {
-    //Todo these two expects should probably just return a default config file instead
-    let config_str = fs::read_to_string("/home/viktor/programming/term-finder/settings.toml").expect("Failed to read Cargo.toml file");
-    let preconfig: Preconfig = toml::from_str(&config_str).expect("Failed to read config file!");
-    let color_str = preconfig.colors.main.to_lowercase();
+impl Colors {
+    fn from_raw(raw_colors: &RawColors) -> Self {
+        Colors {
+            file_panes: FilePanesColors::from_raw(&raw_colors.file_panes),
+        }
+    }
+}
 
-    let color = if color_str.starts_with('#') {
+impl FilePanesColors {
+    fn from_raw(raw_colors: &RawFilePanesColors) -> Self {
+        FilePanesColors {
+            background: parse_color(&raw_colors.background),
+            border: parse_color(&raw_colors.border),
+            hover: parse_color(&raw_colors.hover),
+            selected_focus: parse_color(&raw_colors.selected_focus),
+            selected_no_focus: parse_color(&raw_colors.selected_no_focus),
+            text_default: parse_color(&raw_colors.text_default),
+            text_selected: parse_color(&raw_colors.text_selected),
+        }
+    }
+}
+
+pub fn parse_color (color_str: &str) -> Color {
+    let color_str = color_str.to_lowercase();
+
+    if color_str.starts_with('#') {
         match parse_rbg(&color_str) {
             Ok(color) => color,
             Err(_) => Color::Red,
@@ -66,11 +109,17 @@ pub fn parse() -> Config {
             "white" => Color::White,
             _ => Color::Red,
         }
-    };
-    Config {
-        colors: Colors {
-            main: color
-        }
+    }
+}
+
+fn parse_rbg(hex_code: &str) -> Result<Color, std::num::ParseIntError> {
+    if hex_code.chars().count() != 7 {
+        return Ok(Color::Red);
     }
 
+    let r: u8 = u8::from_str_radix(&hex_code[1..3], 16)?;
+    let g: u8 = u8::from_str_radix(&hex_code[3..5], 16)?;
+    let b: u8 = u8::from_str_radix(&hex_code[5..7], 16)?;
+
+    Ok(Color::Rgb(r, g, b))
 }
