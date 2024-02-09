@@ -28,6 +28,8 @@ fn main() -> Result<()> {
     let mut terminal = setup_terminal()
         .context("setup failed")?;
 
+    //Let errors that would crash bubble to the top so the terminal can be reset properly
+    //Errors which should't crash should never reach this point
     let e = if let Err(e) = run_app(&mut terminal, Duration::new(13, 13)) {
         Some(e)
     } 
@@ -81,19 +83,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Resul
     loop {
         let _ = terminal.draw(|frame| render::render_app(frame, &app, &render_config));
 
-        let event_return = event_handler::handle_events(&mut app);
+        let quit = event_handler::handle_events(&mut app)?;
 
-        match event_return {
-            Ok(exit) => {
-                if exit {
-                    break;
-                }
-            }
-            //THIS Is not so Vry good me no likey fucking hell change later
-            Err(..) => {
-                break;
-            },
+        if quit {
+            break;
         }
+
     }
     Ok(())
 }

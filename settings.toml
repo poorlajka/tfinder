@@ -2,10 +2,11 @@
 
 [colors.file_panes]
 background = "Red" 
-border = "Blue" 
+border = "LightMagenta" 
 hover = "Magenta" 
-selected_focus = "Magenta" 
-selected_no_focus = "Gray" 
-text_default = "Yellow" 
+selected_focus = "LightMagenta" 
+selected_no_focus = "Magenta" 
+text_default = "LightMagenta" 
+text_selected = "Black" 
 
 [colors.path_trail]
