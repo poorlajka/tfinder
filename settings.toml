@@ -1,12 +1,21 @@
 [colors]
 
 [colors.file_panes]
-background = "Red" 
-border = "LightMagenta" 
+background = "black" 
+border = "Magenta" 
 hover = "Magenta" 
-selected_focus = "LightMagenta" 
-selected_no_focus = "Magenta" 
-text_default = "LightMagenta" 
+selected_focus = "Magenta" 
+selected_no_focus = "LightMagenta" 
+text_default = "Magenta" 
 text_selected = "Black" 
 
 [colors.path_trail]
+background = "Black" 
+text_default = "LightMagenta" 
+text_hovered = "Magenta" 
+
+[colors.prompt_bar]
+background = "Black" 
+text_default = "LightMagenta" 
+text_hovered = "White" 
+text_prompt = "White" 

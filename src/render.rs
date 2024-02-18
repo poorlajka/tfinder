@@ -1,9 +1,7 @@
 use crate::app;
 use crate::{
-    Backend,
     Block,
     Borders,
-    Color,
     Frame,
     Line,
     List,
@@ -18,104 +16,46 @@ use crate::prompt;
 use crate::file_pane;
 use crate::path_trail;
 
-pub fn render_app<B: Backend>(frame: &mut Frame<B>, app: &app::App, render_config: &config::Config) {
+use ratatui_image::StatefulImage; 
+use crate::preview::{Preview, PreviewType};
 
-    render_trail(frame, &app.path_trail);
-    render_pane(frame, &app.first_pane, render_config, app.focus == app::Component::FirstPane);
-    render_pane(frame, &app.second_pane, render_config, app.focus == app::Component::SecondPane);
-    render_prompt(frame, &app.prompt);
 
-    //TODO REDO THE THIRD PANE (Commented block below) RENDERING THIS IS UGLY AF
-    let ascii_folder = "
-░░░░░░░░░░░░░░░░░░░░
-░▒▒▒▒▒░░░░░░░░░░░░░░
-░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
-░░░░░░░░░░░░░░░░░░░░
-░░░░░░░░░░░░░░░░░░░░
-";
+pub fn render_app(frame: &mut Frame, app: &mut app::App, render_config: &config::Config) {
 
-    let ascii_file = "
-░░░▓▓▓▓▓▓▓▓▓▓░░░░░░░
-░░░▓▒▒▒▒▒▒▒▒▓▓▓░░░░░
-░░░▓▒▒▒▒▒▒▒▒▒▒▒▓░░░░
-░░░▓▒▒▒▒▒▒▒▒▒▒▒▒▓░░░
-░░░▓▒▒░░░░░░▒▒▒▒▓░░░
-░░░▓▒▒▒▒▒▒▒▒▒▒▒▒▓░░░
-░░░▓▒▒░░░░░░░░▒▒▓░░░
-░░░▓▒▒▒▒▒▒▒▒▒▒▒▒▓░░░
-░░░▓▒▒░░░░░░░░▒▒▓░░░
-░░░▓▒▒▒▒▒▒▒▒▒▒▒▒▓░░░
-";
+    render_trail(frame, &app.path_trail, &render_config.colors.path_trail);
+    //Dealing with focus like this is hacky and does not spark joy but it works
+    render_pane(frame, &app.first_pane, &render_config.colors.file_panes, app.focus == app::Component::FirstPane);
+    render_pane(frame, &app.second_pane, &render_config.colors.file_panes, app.focus == app::Component::SecondPane);
+    render_prompt(frame, &app.prompt, &render_config.colors.prompt_bar);
 
-    /*
-    let (fwidth, fheight) = (frame.size().width, frame.size().height);
-
-    app.second_pane.width = fwidth / 3;
-    app.first_pane.width = fwidth / 3;
-    let pane2_state = &app.second_pane.files.state;
-    match pane2_state.selected() {
-        Some(index) => {
-            let file = &app.second_pane.entries[index];
-
-            if let Some(file_name) = file.file_name().to_str() {
-                let mut file_info = Paragraph::new("");
-                if file.path().is_dir() {
-                    file_info = Paragraph::new(
-                        ascii_folder.to_owned() + "name: " + file_name + "\ntype: folder",
-                    )
-                    .style(Style::default().fg(Color::White));
-                } else if file.path().is_file() {
-                    file_info = Paragraph::new(
-                        ascii_file.to_owned() + "name: " + file_name + "\ntype: file",
-                    )
-                    .style(Style::default().fg(Color::White));
-                }
-
-                frame.render_widget(
-                    file_info,
-                    Rect::new((fwidth / 3) * 2 + (fwidth / 4) / 3, fheight / 4, 20, 20),
-                );
-            }
-        }
-        None => {
-            if let Some(index) = app.first_pane.files.state.selected() {
-                let file = &app.first_pane.entries[index];
-                if let Some(file_name) = file.file_name().to_str() {
-                    let mut file_info = Paragraph::new("");
-                    if file.path().is_dir() {
-                        file_info = Paragraph::new(
-                            ascii_folder.to_owned() + "name: " + file_name + "\ntype: folder",
-                        )
-                        .style(Style::default().fg(Color::White));
-                    } else if file.path().is_file() {
-                        file_info = Paragraph::new(
-                            ascii_file.to_owned() + "name: " + file_name + "\ntype: file",
-                        )
-                        .style(Style::default().fg(Color::White));
-                    }
-
-                    frame.render_widget(
-                        file_info,
-                        Rect::new((fwidth / 3) * 2 + (fwidth / 4) / 3, fheight / 4, 20, 20),
-                    );
-                }
-            }
-        }
-    }
-    */
+    render_preview(frame, &mut app.preview, );
 }
 
-fn get_pane_list(file_pane: &file_pane::FilePane, config: &config::Config, is_focused: bool) -> List<'static> {
+fn render_preview(frame: &mut Frame, preview: &mut Preview) {
+    match &preview.preview_type {
+        PreviewType::Image(dyn_img) => {
+            let image = StatefulImage::new(None);
+            frame.render_stateful_widget(
+                image,
+                preview.rect,
+                &mut dyn_img.image.clone(),
+            );
+        }
+        PreviewType::File => {
+        }
+        PreviewType::Folder => {
+        }
+        PreviewType::None => {
+        }
+    }
+}
+
+fn get_pane_list(file_pane: &file_pane::FilePane, colors: &config::FilePanesColors, is_focused: bool) -> List<'static> {
     let color = if is_focused {
-        config.colors.file_panes.selected_focus
+        colors.selected_focus
     }
     else {
-        config.colors.file_panes.selected_no_focus
+        colors.selected_no_focus
     };
 
     let first_pane_files: Vec<ListItem> = file_pane
@@ -124,42 +64,42 @@ fn get_pane_list(file_pane: &file_pane::FilePane, config: &config::Config, is_fo
         .iter()
         .map(|i| {
             let lines = vec![Line::from(i.to_owned().0)];
-            ListItem::new(lines).style(Style::default().fg(config.colors.file_panes.text_default))
+            ListItem::new(lines).style(Style::default().fg(colors.text_default))
         })
         .collect();
 
     List::new(first_pane_files)
         .block(Block::default().borders(Borders::RIGHT))
-        .style(Style::default().fg(config.colors.file_panes.border))
+        .style(Style::default().fg(colors.border))
         .highlight_style(
             Style::default()
                 .bg(color)
-                .fg(config.colors.file_panes.text_selected)
+                .fg(colors.text_selected)
                 .add_modifier(Modifier::ITALIC)
                 .add_modifier(Modifier::BOLD),
         )
 }
-pub fn render_pane<B: Backend>(frame: &mut Frame<B>, pane: &file_pane::FilePane, config: &config::Config, is_focused: bool) {
+pub fn render_pane(frame: &mut Frame, pane: &file_pane::FilePane, colors: &config::FilePanesColors, is_focused: bool) {
 
     frame.render_stateful_widget(
-        get_pane_list(&pane, config, is_focused),
+        get_pane_list(&pane, colors, is_focused),
         pane.rect,
         &mut pane.files.state.clone(),
     );
 }
 
-pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &path_trail::PathTrail) {
+pub fn render_trail(frame: &mut Frame, trail: &path_trail::PathTrail, colors: &config::PathTrailColors) {
     let mut pos: usize = 0;
     for (i, (name, _)) in trail.paths.iter().enumerate() {
         let mut paragraph = Paragraph::new(name.to_string());
         if let Some(index) = trail.hovered_path {
             if index == i {
-                paragraph = paragraph.style(Style::default().fg(Color::LightMagenta));
+                paragraph = paragraph.style(Style::default().fg(colors.text_hovered));
             } else {
-                paragraph = paragraph.style(Style::default().fg(Color::White));
+                paragraph = paragraph.style(Style::default().fg(colors.text_default));
             }
         } else {
-            paragraph = paragraph.style(Style::default().fg(Color::White));
+            paragraph = paragraph.style(Style::default().fg(colors.text_default));
         }
         let mut width = name.len();
         if width > 20 {
@@ -170,32 +110,25 @@ pub fn render_trail<B: Backend>(frame: &mut Frame<B>, trail: &path_trail::PathTr
         frame.render_widget(Paragraph::new(" > "), Rect::new(pos as u16, 0, 3, 2));
         pos += 3;
     }
+
 }
 
-pub fn render_prompt<B: Backend>(frame: &mut Frame<B>, prompt: &prompt::Prompt) {
+
+pub fn render_prompt(frame: &mut Frame, prompt: &prompt::Prompt, colors: &config::PromptBarColors) {
 
     let current_prompt = if prompt.is_active() {
 
-        if prompt.tick < 5 {
-            Paragraph::new(
-                prompt.get_prompt_string() + &prompt.input.clone() + "_",
-            )
-            .style(Style::default().fg(Color::White).bg(Color::Black))
-        }
-        else {
-
-            Paragraph::new(
-                prompt.get_prompt_string() + &prompt.input.clone() + " ",
-            )
-            .style(Style::default().fg(Color::White).bg(Color::Black))
-        }
+        Paragraph::new(
+            prompt.get_prompt_string() + &prompt.input.clone() + "_",
+        )
+        .style(Style::default().fg(colors.text_prompt).bg(colors.background))
     }
     else {
 
         Paragraph::new(
             "C Create    R Rename    M Move    D Delete    O Open    H Help    / Search    F fill",
         )
-        .style(Style::default().fg(Color::White).bg(Color::Black))
+        .style(Style::default().fg(colors.text_default).bg(colors.background))
     };
 
     frame.render_widget(current_prompt, prompt.rect);

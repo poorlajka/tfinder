@@ -7,6 +7,7 @@ mod config;
 mod prompt;
 mod file_pane;
 mod path_trail;
+mod preview;
 
 use std::fs::DirEntry;
 use std::env;
@@ -25,6 +26,7 @@ use crossterm::{
 
 fn main() -> Result<()> {
 
+    
     let mut terminal = setup_terminal()
         .context("setup failed")?;
 
@@ -43,6 +45,7 @@ fn main() -> Result<()> {
     if let Some(err) = e {
         println!("Error: {:?}", err);
     }
+    
 
     Ok(())
 }
@@ -75,13 +78,13 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
         .context("failed to disable raw mode")
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, tick_rate: Duration) -> Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, _tick_rate: Duration) -> Result<()> {
 
     let render_config = config::parse()?;
     let mut app = app::App::new(&terminal.size()?, &env::current_dir()?);
 
     loop {
-        let _ = terminal.draw(|frame| render::render_app(frame, &app, &render_config));
+        let _ = terminal.draw(|frame| render::render_app(frame, &mut app, &render_config));
 
         let quit = event_handler::handle_events(&mut app)?;
 

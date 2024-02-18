@@ -15,7 +15,7 @@ pub struct Prompt {
 
 impl Prompt {
     pub fn get_prompt_string(&self) -> String {
-        return self.command.get_prompt_string();
+        return self.command.get_prompt_string(&self.root);
     }
     pub fn begin_prompt(&mut self, command: Command) {
         self.is_active = true;
@@ -43,7 +43,7 @@ impl Prompt {
     pub fn run_command(&mut self, root: &Path) {
         match self.command {
             Command::Create => {
-                finder::create_file(root, self.input.clone());
+                let _ = finder::create_file(root, self.input.clone());
             }
             _ => {
             }

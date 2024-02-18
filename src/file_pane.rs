@@ -33,7 +33,7 @@ impl FilePane {
 
         self.files.items.clear();
 
-        let mut remove = Vec::new();
+        let remove = Vec::new();
 
         for (i, folder) in self.entries.iter().enumerate() {
             let mut item_name = String::new();
@@ -93,7 +93,7 @@ impl<T> StatefulList<T> {
         }
     }
 
-    pub fn next(&mut self) {
+    pub fn _next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
                 if i >= self.items.len() - 1 {
@@ -107,7 +107,7 @@ impl<T> StatefulList<T> {
         self.state.select(Some(i));
     }
 
-    pub fn previous(&mut self) {
+    pub fn _previous(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
                 if i == 0 {

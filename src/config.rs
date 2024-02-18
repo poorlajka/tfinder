@@ -3,6 +3,12 @@ use serde::Deserialize;
 use crate::Color;
 use std::fs;
 
+
+/* 
+* TODO: surely there's a better way to do this but can't find it in the crate documentation rn and
+* I'm lazy as fuck so this works for now ig
+*/
+
 #[derive(Debug, Deserialize)]
 struct RawConfig {
     pub colors: RawColors,
@@ -11,6 +17,8 @@ struct RawConfig {
 #[derive(Debug, Deserialize)]
 struct RawColors {
     pub file_panes: RawFilePanesColors,
+    pub path_trail: RawPathTrailColors,
+    pub prompt_bar: RawPromptBarColors,
 }
 
 #[derive(Debug, Deserialize)]
@@ -24,12 +32,29 @@ struct RawFilePanesColors {
     pub text_selected: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct RawPathTrailColors {
+    pub background: String,
+    pub text_default: String,
+    pub text_hovered: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct RawPromptBarColors {
+    pub background: String,
+    pub text_default: String,
+    pub text_hovered: String,
+    pub text_prompt: String,
+}
+
 pub struct Config {
     pub colors: Colors,
 }
 
 pub struct Colors {
     pub file_panes: FilePanesColors,
+    pub path_trail: PathTrailColors,
+    pub prompt_bar: PromptBarColors,
 }
 
 pub struct FilePanesColors {
@@ -40,6 +65,19 @@ pub struct FilePanesColors {
     pub selected_no_focus: Color,
     pub text_default: Color,
     pub text_selected: Color,
+}
+
+pub struct PathTrailColors {
+    pub background: Color,
+    pub text_default: Color,
+    pub text_hovered: Color,
+}
+
+pub struct PromptBarColors {
+    pub background: Color,
+    pub text_default: Color,
+    pub text_hovered: Color,
+    pub text_prompt: Color,
 }
 
 pub fn parse() -> Result<Config, std::io::Error> {
@@ -62,6 +100,9 @@ impl Colors {
     fn from_raw(raw_colors: &RawColors) -> Self {
         Colors {
             file_panes: FilePanesColors::from_raw(&raw_colors.file_panes),
+            path_trail: PathTrailColors::from_raw(&raw_colors.path_trail),
+            prompt_bar: PromptBarColors::from_raw(&raw_colors.prompt_bar),
+
         }
     }
 }
@@ -76,6 +117,27 @@ impl FilePanesColors {
             selected_no_focus: parse_color(&raw_colors.selected_no_focus),
             text_default: parse_color(&raw_colors.text_default),
             text_selected: parse_color(&raw_colors.text_selected),
+        }
+    }
+}
+
+impl PathTrailColors {
+    fn from_raw(raw_colors: &RawPathTrailColors) -> Self {
+        PathTrailColors {
+            background: parse_color(&raw_colors.background),
+            text_default: parse_color(&raw_colors.text_default),
+            text_hovered: parse_color(&raw_colors.text_hovered),
+        }
+    }
+}
+
+impl PromptBarColors {
+    fn from_raw(raw_colors: &RawPromptBarColors) -> Self {
+        PromptBarColors {
+            background: parse_color(&raw_colors.background),
+            text_default: parse_color(&raw_colors.text_default),
+            text_hovered: parse_color(&raw_colors.text_hovered),
+            text_prompt: parse_color(&raw_colors.text_prompt),
         }
     }
 }

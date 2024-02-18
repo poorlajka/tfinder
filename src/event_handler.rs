@@ -9,7 +9,7 @@ use crossterm::event::{
     KeyCode, poll, read, Event, MouseEvent, MouseEventKind, KeyEvent
 };
 
-//Main event handler entry point
+//TODO: This implementation is pretty messy lots of duplicate code refactor later
 pub fn handle_events(app: &mut app::App) -> Result<bool> {
 
     if app.prompt.tick > 10 {
@@ -19,7 +19,7 @@ pub fn handle_events(app: &mut app::App) -> Result<bool> {
         app.prompt.tick+=1;
     }
 
-    if !poll(Duration::from_millis(100))? {
+    if !poll(Duration::from_millis(1000))? {
         return Ok(false);
     }
 
@@ -32,6 +32,9 @@ pub fn handle_events(app: &mut app::App) -> Result<bool> {
         }
         Event::Mouse(event) => {
             handle_mouse_event(event, app);
+        }
+        Event::Resize(width, height) => {
+            app.resize(width, height);
         }
         _ => (),
     }
@@ -74,7 +77,7 @@ fn handle_path_trail_me(event: MouseEvent, app: &mut app::App) {
     }
 
     match event.kind {
-        MouseEventKind::Down(click) => {
+        MouseEventKind::Down(_) => {
 
             if let Some(index) = app.path_trail.get_hovered_index(event) {
                 let path = &app.path_trail.paths[index].1;
@@ -103,7 +106,7 @@ fn handle_first_pane_me(event: MouseEvent, app: &mut app::App) {
                 *offset -= 1;
             }
         }
-        MouseEventKind::Down(click) => {
+        MouseEventKind::Down(_click) => {
             let index = pane.get_index(event);
             if index >= pane.files.items.len() {
                 pane.files.unselect();
@@ -116,7 +119,10 @@ fn handle_first_pane_me(event: MouseEvent, app: &mut app::App) {
             app.second_pane.load_path(path.path());
             app.path_trail.load_path(&path.path().to_path_buf());
 
+
             app.second_pane.files.unselect();
+            app.focus = app::Component::FirstPane;
+            app.preview.load(&path.path());
         }
         _ => {}
     }
@@ -161,6 +167,8 @@ fn handle_second_pane_me(event: MouseEvent, app: &mut app::App) {
             } 
             else {
                 pane.files.state.select(Some(index));
+                app.focus = app::Component::SecondPane;
+                app.preview.load(&path);
             }
         }
         _ => {}
@@ -171,23 +179,27 @@ fn handle_second_pane_me(event: MouseEvent, app: &mut app::App) {
 fn move_up(app: &mut app::App) {
     match app.focus {
         app::Component::FirstPane => {
-            if let Some(state) = app.first_pane.files.state.selected() {
+            if let Some(mut state) = app.first_pane.files.state.selected() {
                 if state > 0 {
                     app.first_pane.files.state.select(Some(state-1));
                     let path = &app.first_pane.entries[state-1];
                     app.second_pane.load_path(path.path());
                     app.second_pane.files.state.select(None);
+                    state-=1;
                 }
+                app.preview.load(&app.first_pane.entries[state].path());
             }
             else {
                 app.first_pane.files.state.select(Some(0));
             }
         }
         app::Component::SecondPane => {
-            if let Some(state) = app.second_pane.files.state.selected() {
+            if let Some(mut state) = app.second_pane.files.state.selected() {
                 if state > 0 {
                     app.second_pane.files.state.select(Some(state-1));
+                    state-=1;
                 }
+                app.preview.load(&app.second_pane.entries[state].path());
             }
             else if app.second_pane.entries.len() > 0 {
                 app.second_pane.files.state.select(Some(0));
@@ -201,13 +213,15 @@ fn move_up(app: &mut app::App) {
 fn move_down(app: &mut app::App) {
     match app.focus {
         app::Component::FirstPane => {
-            if let Some(state) = app.first_pane.files.state.selected() {
+            if let Some(mut state) = app.first_pane.files.state.selected() {
                 if state < app.first_pane.entries.len()-1 {
                     app.first_pane.files.state.select(Some(state+1));
                     let path = &app.first_pane.entries[state+1];
                     app.second_pane.load_path(path.path());
                     app.second_pane.files.state.select(None);
+                    state+=1;
                 }
+                app.preview.load(&app.first_pane.entries[state].path());
 
             }
             else {
@@ -215,10 +229,12 @@ fn move_down(app: &mut app::App) {
             }
         }
         app::Component::SecondPane => {
-            if let Some(state) = app.second_pane.files.state.selected() {
+            if let Some(mut state) = app.second_pane.files.state.selected() {
                 if state < app.second_pane.entries.len()-1 {
                     app.second_pane.files.state.select(Some(state+1));
+                    state+=1;
                 }
+                app.preview.load(&app.second_pane.entries[state].path());
             }
             else if app.second_pane.entries.len() > 0 {
                 app.second_pane.files.state.select(Some(0));
@@ -357,7 +373,9 @@ fn handle_key_event(event: KeyEvent, app: &mut app::App) -> bool {
                 //app.prompt.begin_prompt(Command::Search);
             }
             KeyCode::Char('f') => {
-                //app.prompt.begin_prompt(Command::Fill);
+            }
+            
+            KeyCode::Char('g') => {
             }
             KeyCode::Esc => {
                 return false;
