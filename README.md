@@ -1,50 +1,33 @@
-# Termfinder - A minimal, cross-platform, tui based file manager written in Rust  
+# tfinder - A minimal tui-based file manager written in Rust  
 
-### About 
-
-### Features
-* Mouse support
-* Vim esque bindings
-* TODO: Image displaying
-* Custom styling
-* TODO: Custom file commands
-* Works straight in tty with no wm
-
-
-**Warning! Many features missing or likely not tested properly. Don't use for any actual stuff, this is just a toy-project for now so use with caution.**
+**Note! Majority of key features missing or likely not tested properly. Don't use for any actual stuff, for now this is just a toy-project I'm making for fun.**
 
 ## Installation
 
-To install termfinder simply clone the repo and build with Cargo:
+To test out tfinder simply clone the repo and build with Cargo:
 
 ```shell
-git clone git@github.com:poorlajka/termfinder.git
-cd termfinder
+git clone git@github.com:poorlajka/tfinder.git
+cd tfinder
 cargo build --release
 ```
 
-## Running
+And excecute the binary
 
 ```shell
 cd release
-./termfinder
+./tfinder
 ```
 
-Optionally move the binary to a desired location like for example:
-
-```shell
-mv termfinder /usr/local/bin/
-```
 
 ## Usage
 
 
 ### Keybinds:
 
-* up/down/arrow or j k to move up down in the list of files in the currently selected file pane.
-* left/right arrow or h l to 
-* Esc to quit
-* Enter to go into folder
+* up/down-arrow or jk to traverse the currently selected file pane
+* left/right-arrow or hl to switch currently selected pane
+* esc to quit
 
 ### Mouse
 
@@ -52,57 +35,45 @@ Try clicking on stuff UwU
 
 ## Configuration
 
-termfinder will look for a config file at
+tfinder currently looks for a settings file in it's project folder. This is stupid and should be changed.
 
-```shell
-~/.config/termfinder/termfinder.toml
-```
+### Colors
 
-Note: This file and it's parent directory have to be created manually.
-
-## Setting colors
-
-**termfinder consists of:**
-
-* Two file panels: one to the far left and the second one just beside it
-* A image/info display panel to the far right
-* A path trail at the top
-* A command bar/prompt at the bottom
-
-You can set the colors of these components like:
+You can set the colors of these components to rgb values or names of default terminal colors like magenta or white.
 
 ```
 [colors]
-global {
-    background = "black"
-}
-file_panes = {
-    background = "lightblue",
-    border = "red",
-    hover = "#ffffff",
-    selected = "magenta",
-    text_default = "white",
-    text_selected = "#aaaaaa"
-}
-img_pane = {
-    background = ""
-}
-path_trail = {
-    background = ""
-}
-prompt_bar = {
-    background = ""
-}
+
+[colors.file_panes]
+background = "black" 
+border = "#c397d8" 
+hover = "Magenta" 
+selected_focus = "#c397d8" 
+selected_no_focus = "#523c51" 
+text_default = "#c397d8" 
+text_selected = "#000000" 
+
+[colors.path_trail]
+background = "#000000" 
+text_default = "#c397d8" 
+text_hovered = "White" 
+
+[colors.prompt_bar]
+background = "#0a0000" 
+text_default = "#c397d8" 
+text_hovered = "#FFFFFF" 
+text_prompt = "#FFFFFF" 
 ```
 
-## Adding custom commands
+## TODO
 
-```
-[commands]
-commands = [
-    "T tar -xvf",
-    "U unzip",
-    "V vim",
-    "G grep"
-]
-```
+* Carpet bomb event handler(it sucks) and bugfix/rewrite/refactor that shit
+* Display ascii art for folders and filetypes
+* Implement rest of commands
+* Implement custom made commands
+* Make images not be sooooo sloooooow if possible
+* Rest of color config
+* Look for config file in os based folder instead of project folder
+* Vacuum rest of code for some silly stuff
+* Make resizing work properly
+* Figure out if scrolling can be nicer for stateful list or if it's better to make something myself
