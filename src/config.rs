@@ -82,7 +82,8 @@ pub struct PromptBarColors {
 
 pub fn parse() -> Result<Config, std::io::Error> {
 
-    let config_str = fs::read_to_string("/home/viktor/programming/term-finder/settings.toml")?;
+    let config_str = fs::read_to_string("settings.toml")?;
+    
     let raw_config: RawConfig = toml::from_str(&config_str)?;
 
     Ok(Config::from_raw(&raw_config))

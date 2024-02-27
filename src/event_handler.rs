@@ -141,6 +141,7 @@ fn handle_second_pane_me(event: MouseEvent, app: &mut app::App) {
                 *offset -= 1;
             }
         }
+        //Mouse does not display picture correctly but I should probably just take a weekend and refactor this entire file instead so lmao
         MouseEventKind::Down(_click) => {
             let index = pane.get_index(event);
             if index >= pane.files.items.len() {
@@ -168,8 +169,8 @@ fn handle_second_pane_me(event: MouseEvent, app: &mut app::App) {
             else {
                 pane.files.state.select(Some(index));
                 app.focus = app::Component::SecondPane;
-                app.preview.load(&path);
             }
+            app.preview.load(&app.second_pane.entries[index].path());
         }
         _ => {}
     }
@@ -258,10 +259,12 @@ fn move_right(app: &mut app::App) {
 
                     if let Some(index2) = app.second_pane.files.state.selected() {
                         app.second_pane.files.state.select(Some(index2));
+                        app.preview.load(&app.second_pane.entries[index2].path());
 
                     }
                     else if app.second_pane.entries.len() > 0 {
                         app.second_pane.files.state.select(Some(0));
+                        app.preview.load(&app.second_pane.entries[0].path());
                     }
                 }
             }

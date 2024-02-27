@@ -2,20 +2,20 @@
 
 [colors.file_panes]
 background = "black" 
-border = "Magenta" 
+border = "#c397d8" 
 hover = "Magenta" 
-selected_focus = "Magenta" 
-selected_no_focus = "LightMagenta" 
-text_default = "Magenta" 
-text_selected = "Black" 
+selected_focus = "#c397d8" 
+selected_no_focus = "#523c51" 
+text_default = "#c397d8" 
+text_selected = "#000000" 
 
 [colors.path_trail]
-background = "Black" 
-text_default = "LightMagenta" 
-text_hovered = "Magenta" 
+background = "#000000" 
+text_default = "#c397d8" 
+text_hovered = "White" 
 
 [colors.prompt_bar]
-background = "Black" 
-text_default = "LightMagenta" 
-text_hovered = "White" 
-text_prompt = "White" 
+background = "#0a0000" 
+text_default = "#c397d8" 
+text_hovered = "#FFFFFF" 
+text_prompt = "#FFFFFF" 
