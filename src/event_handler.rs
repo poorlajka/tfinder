@@ -182,7 +182,7 @@ fn move_up(app: &mut app::App) {
         app::Component::FirstPane => {
             if let Some(mut state) = app.first_pane.files.state.selected() {
                 if state > 0 {
-                    app.first_pane.files.state.select(Some(state-1));
+                    app.first_pane.files.previous();
                     let path = &app.first_pane.entries[state-1];
                     app.second_pane.load_path(path.path());
                     app.second_pane.files.state.select(None);
@@ -197,7 +197,7 @@ fn move_up(app: &mut app::App) {
         app::Component::SecondPane => {
             if let Some(mut state) = app.second_pane.files.state.selected() {
                 if state > 0 {
-                    app.second_pane.files.state.select(Some(state-1));
+                    app.second_pane.files.previous();
                     state-=1;
                 }
                 app.preview.load(&app.second_pane.entries[state].path());
@@ -216,7 +216,7 @@ fn move_down(app: &mut app::App) {
         app::Component::FirstPane => {
             if let Some(mut state) = app.first_pane.files.state.selected() {
                 if state < app.first_pane.entries.len()-1 {
-                    app.first_pane.files.state.select(Some(state+1));
+                    app.first_pane.files.next(app.first_pane.rect.height-1);
                     let path = &app.first_pane.entries[state+1];
                     app.second_pane.load_path(path.path());
                     app.second_pane.files.state.select(None);
@@ -232,7 +232,7 @@ fn move_down(app: &mut app::App) {
         app::Component::SecondPane => {
             if let Some(mut state) = app.second_pane.files.state.selected() {
                 if state < app.second_pane.entries.len()-1 {
-                    app.second_pane.files.state.select(Some(state+1));
+                    app.second_pane.files.next(app.first_pane.rect.height-1);
                     state+=1;
                 }
                 app.preview.load(&app.second_pane.entries[state].path());
