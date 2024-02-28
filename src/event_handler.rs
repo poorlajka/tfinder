@@ -81,6 +81,7 @@ fn handle_path_trail_me(event: MouseEvent, app: &mut app::App) {
 
             if let Some(index) = app.path_trail.get_hovered_index(event) {
                 let path = &app.path_trail.paths[index].1;
+                app.first_pane.files.unselect();
 
                 app.first_pane.load_path(path.to_path_buf());
                 app.path_trail.load_path(&path.to_path_buf());
