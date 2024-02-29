@@ -69,6 +69,7 @@ text_prompt = "#FFFFFF"
 
 ## TODO
 
+* Fix picker on windows(does not compile atm)
 * Carpet bomb event handler(it sucks) and bugfix/rewrite/refactor that shit
 * Display ascii art for folders and filetypes
 * Implement rest of commands
