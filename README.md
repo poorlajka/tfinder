@@ -1,7 +1,7 @@
 # tfinder - A minimal tui-based file manager written in Rust  
 
 <p align="center">
-<img src="preview.gif" width="700">
+<img src="preview.gif" width="600">
 </p>
 
 **Note! Majority of key features missing or likely not tested properly. Don't use for any actual stuff, for now this is just a toy-project I'm making for fun.**
