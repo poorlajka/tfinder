@@ -9,24 +9,38 @@ use crate::DirEntry;
 pub struct FilePane {
     pub files: StatefulList<(String, usize)>,
     pub entries: Vec<DirEntry>,
-    pub current_path: PathBuf,
+    pub current_path: Option<PathBuf>,
     pub rect: Rect,
 }
 
 impl FilePane {
-    pub fn is_mouse_on(&self, column: u16, row: u16) -> bool {
-        let Rect {x, y, width, height} = self.rect;
-        
-        column >= x && column <= x + width
-            && row >= y && row <= y + height
+
+    pub fn new(path: &PathBuf, rect: Rect) -> Self {
+        let mut file_pane = FilePane::new_empty(rect);
+        file_pane.load_path(path);
+        file_pane
+    }
+
+    pub fn new_empty(rect: Rect) -> Self {
+        FilePane {
+            files: StatefulList::with_items(Vec::new()),
+            entries: Vec::new(),
+            current_path: None,
+            rect,
+        }
+    }
+
+    pub fn resize(&mut self, rect: Rect) {
+        self.rect = rect;
     }
 
     pub fn get_index(&mut self, event: MouseEvent) -> usize {
         let offset = self.files.state.offset();
         return event.row as usize - 2 + offset;
     }
-    pub fn load_path(&mut self, path: PathBuf) {
-        self.current_path = path.to_path_buf();
+
+    pub fn load_path(&mut self, path: &PathBuf) {
+        self.current_path = Some(path.clone());
 
         self.entries.clear();
         let _ = finder::get_folders(&mut self.entries, &path);
@@ -74,8 +88,9 @@ impl FilePane {
         }
     }
     pub fn update(&mut self) {
-        let path = &self.current_path;
-        self.load_path(path.to_path_buf());
+        if let Some(path) = &self.current_path {
+            self.load_path(&path.clone());
+        }
     }
 }
 

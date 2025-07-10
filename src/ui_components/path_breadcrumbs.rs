@@ -2,10 +2,9 @@ use crate::PathBuf;
 use crate::MouseEvent;
 use crate::Rect;
 
-pub struct PathTrail {
+pub struct PathBreadcrumbs {
     pub paths: Vec<(String, PathBuf)>,
     pub hovered_path: Option<usize>,
-    pub rect: Rect,
 }
 
 struct Interval {
@@ -13,13 +12,16 @@ struct Interval {
     end: u16,
 }
 
-impl PathTrail {
+impl PathBreadcrumbs {
 
-    pub fn is_mouse_on(&self, column: u16, row: u16) -> bool {
-        let Rect {x, y, width, height} = self.rect;
+    pub fn new(path: &PathBuf) -> Self {
+        let mut path_breadcrumbs = PathBreadcrumbs {
+            paths: Vec::new(),
+            hovered_path: None,
+        };
+        path_breadcrumbs.load_path(path);
 
-        column >= x && column <= x + width
-            && row >= y && row <= y + height
+        path_breadcrumbs
     }
 
     pub fn get_hovered_index(&self, event: MouseEvent) -> Option<usize> {
@@ -29,7 +31,7 @@ impl PathTrail {
             interval.begin = interval.end;
             interval.end = interval.end + name.len() as u16 + 3;
 
-            if event.column >= interval.begin && event.column <= interval.end {
+            if event.column >= interval.begin && event.column <= interval.end - 4 {
                 return Some(i);
             }
         }

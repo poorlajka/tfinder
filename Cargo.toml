@@ -7,7 +7,7 @@ edition = "2021"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
 crossterm = "0.27.0"
-ratatui = { version = "0.26.0", features = ["all-widgets"]}
+ratatui = { version = "0.26.3", features = ["all-widgets"]}
 anyhow = "1.0.74"
 futures = "0.3"
 image = "0.24.8"

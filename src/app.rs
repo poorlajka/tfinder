@@ -1,128 +1,107 @@
 use std::path::PathBuf;
 use ratatui::prelude::Rect;
-use crate::path_trail::PathTrail;
-use crate::file_pane::{ FilePane, StatefulList };
 
-use ratatui_image::picker::Picker;
-
-use crate::prompt::Prompt;
-use crate::command::Command;
-use crate::preview::{Preview, PreviewType};
-
-pub struct App {
-    pub focus: Component,
-    pub path_trail: PathTrail,
-    pub first_pane: FilePane,
-    pub second_pane: FilePane,
-    pub prompt: Prompt,
-    pub rect: Rect,
-    pub preview: Preview,
-}
+use crate::ui_components::{
+    top_bar::TopBar,
+    bot_bar::BotBar,
+    fav_pane::FavPane,
+    file_panes::FilePanes,
+    preview_pane::PreviewPane,
+};
 
 #[derive(PartialEq)]
 pub enum Component {
-    PathTrail,
-    FirstPane,
-    SecondPane,
+    TopBar,
+    BotBar,
+    FavPane,
+    FilePanes,
+}
+
+struct AppLayout {
+    pub top_bar: Rect,
+    pub bot_bar: Rect,
+    pub fav_pane: Rect,
+    pub file_panes: Rect,
+}
+
+impl AppLayout {
+    fn new(width: u16, height: u16) -> Self {
+        let top_bar_height = 2;
+        let bot_bar_height = 1;
+        let fav_pane_width = 0;
+
+        AppLayout {
+            top_bar: Rect {
+                x: 0,
+                y: 0,
+                width: width,
+                height: top_bar_height,
+            },
+            bot_bar: Rect {
+                x: 0,
+                y: height - bot_bar_height,
+                width: width,
+                height: bot_bar_height,
+            },
+            fav_pane: Rect {
+                x: 0,
+                y: top_bar_height,
+                width: fav_pane_width,
+                height: height 
+                    -  (top_bar_height + bot_bar_height),
+            },
+            file_panes: Rect {
+                x: fav_pane_width,
+                y: top_bar_height,
+                width: width - fav_pane_width,
+                height: height 
+                    -  (top_bar_height + bot_bar_height),
+            },
+        }
+    }
+}
+
+pub struct App {
+    pub top_bar: TopBar,
+    pub bot_bar: BotBar,
+    pub fav_pane: FavPane,
+    pub file_panes: FilePanes,
 }
 
 impl App {
-    //TODO this could deffo be nicer
-    pub fn new(term_size: &Rect, path: &PathBuf) -> Self {
+    pub fn new(size: Rect, initial_path: &PathBuf) -> Self {
+        let layout = AppLayout::new(size.width, size.height);
 
-        let mut picker = Picker::from_termios().unwrap();
-        picker.guess_protocol();
-
-        let mut app = App {
-
-            first_pane: FilePane {
-                files: StatefulList::with_items(Vec::new()),
-                current_path: PathBuf::new(),
-                entries: Vec::new(),
-                rect: Rect { x: 0, y: 2, 
-                    width: term_size.width/3, 
-                    height: term_size.height - 2 - 2, 
-                }, 
-                
-            },
-
-            second_pane: FilePane {
-                files: StatefulList::with_items(Vec::new()),
-                current_path: PathBuf::new(),
-                entries: Vec::new(),
-                rect: Rect { x: term_size.width/3, y: 2, 
-                    width: term_size.width/3, 
-                    height: term_size.height - 2 - 2, 
-                }, 
-            },
-
-            path_trail: PathTrail {
-                paths: Vec::new(),
-                hovered_path: None,
-                rect: Rect::new(0,0,term_size.width,1),
-            },
-
-            prompt: Prompt {
-                is_active: false,
-                command: Command::None,
-                input: String::new(),
-                rect: Rect::new(0,term_size.height - 1,term_size.width,1),
-                root: PathBuf::from("/home/viktor/programming/term-finder/"),
-                tick: 0,
-            },
-
-            focus: Component::FirstPane,
-
-            rect: *term_size,
-            preview: Preview {
-                picker: picker,
-                preview_type: PreviewType::None,
-                rect: Rect::new(2 * term_size.width / 3 + 2 , term_size.height/4, term_size.width/3 - 5, term_size.height - 20),
-                is_rendered: false,
-            }
-        };
-
-        app.first_pane.load_path(path.to_path_buf());
-        app.path_trail.load_path(&path.to_path_buf());
-        app.first_pane.files.state.select(None);
-        app.second_pane.files.state.select(None);
-
-        app
+        App {
+            top_bar: TopBar::new(initial_path, layout.top_bar),
+            bot_bar: BotBar::new(initial_path, layout.bot_bar),
+            fav_pane: FavPane::new(layout.fav_pane),
+            file_panes: FilePanes::new(initial_path, 4, layout.file_panes),
+        }
     }
 
-    //TODO THIS DOES NOT WORK PROPERLY RIGHT NOW
-    pub fn resize(&mut self, new_width: u16, new_height: u16) {
-        self.first_pane.rect = 
-                Rect { x: 0, y: 2, 
-                    width: new_width/3, 
-                    height: new_height - 2 - 2, 
-                }; 
-        self.second_pane.rect = 
-                Rect { x: new_width/3, y: 2, 
-                    width: new_width/3, 
-                    height: new_height - 2 - 2, 
-                }; 
-        self.path_trail.rect = 
-                Rect::new(0,0,new_width,1);
-        self.prompt.rect = 
-                Rect::new(0,new_height - 1,new_width,1);
-        self.preview.rect = 
-                Rect::new(2 * new_width / 3 + 5 , new_height/4, new_width/3 - 10, new_height - 20);
+    pub fn resize(&mut self, width: u16, height: u16) {
+        let new_layout = AppLayout::new(width, height);
+
+        self.top_bar.resize(new_layout.top_bar);
+        self.bot_bar.resize(new_layout.bot_bar);
     }
 
-    pub fn get_hovered_comp(&self, column: u16, row: u16) -> Option<Component> {
+    pub fn get_component_at(&self, row: u16, column: u16) -> Option<Component> {
+        if self.top_bar.contains_pos(row, column) {
+            return Some(Component::TopBar);
+        }
+        if self.bot_bar.contains_pos(row, column) {
+            return Some(Component::BotBar);
+        }
 
-        if self.path_trail.is_mouse_on(column, row) {
-            return Some(Component::PathTrail);
+        if column <= self.fav_pane.rect.width {
+            return Some(Component::FavPane);
         }
-        if self.first_pane.is_mouse_on(column, row) {
-            return Some(Component::FirstPane);
+
+        if column <= self.fav_pane.rect.width + self.file_panes.rect.width {
+            return Some(Component::FilePanes);
         }
-        if self.second_pane.is_mouse_on(column, row) {
-            return Some(Component::SecondPane);
-        }
-        return None;
+        None
     }
 }
-
-

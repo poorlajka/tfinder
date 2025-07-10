@@ -1,6 +1,7 @@
 use crate::app;
 use crate::Duration;
 use crate::command::Command;
+use crate::Rect;
 
 use std::path::PathBuf;
 
@@ -12,13 +13,7 @@ use crossterm::event::{
 //TODO: This implementation is pretty messy lots of duplicate code refactor later
 pub fn handle_events(app: &mut app::App) -> Result<bool> {
 
-    if app.prompt.tick > 10 {
-        app.prompt.tick = 0;
-    }
-    else {
-        app.prompt.tick+=1;
-    }
-
+        /*
     if !poll(Duration::from_millis(1000))? {
         return Ok(false);
     }
@@ -43,9 +38,58 @@ pub fn handle_events(app: &mut app::App) -> Result<bool> {
     app.second_pane.update();
 
     app.path_trail.load_path(&app.first_pane.current_path);
+    */
 
+    if !poll(Duration::from_millis(1000))? {
+        return Ok(false);
+    }
+
+    match read()? {
+        Event::Key(event) => {
+            return Ok(true);
+        }
+        Event::Mouse(event) => {
+            handle_mouse_event(app, event);
+        }
+        Event::Resize(width, height) => {
+            println!("ldkjsfldkjsfldsj");
+            app.resize(width, height);
+        }
+        _ => (),
+    }
 
     Ok(false)
+}
+
+fn handle_mouse_event(app: &mut app::App, event: MouseEvent) {
+
+    if let Some(component) = app.get_component_at(event.row, event.column) {
+        // Clear the breadcrumb
+        app.top_bar.path_breadcrumbs.hovered_path = None;
+
+        match component {
+            app::Component::TopBar => {
+                handle_mouse_event_top_bar(app, event);
+            }
+            _ => (),
+        }
+
+    }
+}
+
+fn handle_mouse_event_top_bar(app: &mut app::App, event: MouseEvent) {
+    let breadcrumbs = &mut app.top_bar.path_breadcrumbs;
+    if let Some(index) = breadcrumbs.get_hovered_index(event) {
+        breadcrumbs.hovered_path = Some(index);
+    }
+    else {
+        breadcrumbs.hovered_path = None;
+    }
+}
+
+/*
+fn unselect_path_trail(app: &mut app::App) {
+    app.path_trail.hovered_path = None;
 }
 
 fn handle_mouse_event(event: MouseEvent, app: &mut app::App) {
@@ -390,3 +434,4 @@ fn handle_key_event(event: KeyEvent, app: &mut app::App) -> bool {
     true
 
 }
+*/
