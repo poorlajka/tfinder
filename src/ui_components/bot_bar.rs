@@ -18,8 +18,4 @@ impl BotBar {
     pub fn resize(&mut self, rect: Rect) {
         self.rect = rect;
     }
-
-    pub fn contains_pos(&self, row: u16, _column: u16) -> bool {
-        return row >= self.rect.y - self.rect.height;
-    }
 }

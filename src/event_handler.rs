@@ -1,6 +1,7 @@
 use crate::app;
 use crate::Duration;
 use crate::command::Command;
+use crate::event::MouseButton;
 use crate::Rect;
 
 use std::path::PathBuf;
@@ -10,39 +11,13 @@ use crossterm::event::{
     KeyCode, poll, read, Event, MouseEvent, MouseEventKind, KeyEvent
 };
 
-//TODO: This implementation is pretty messy lots of duplicate code refactor later
 pub fn handle_events(app: &mut app::App) -> Result<bool> {
 
-        /*
     if !poll(Duration::from_millis(1000))? {
         return Ok(false);
     }
 
-    match read()? {
-        Event::Key(event) => {
-            //This is how I quit right now kinda ugly though
-            if !handle_key_event(event, app) {
-                return Ok(true);
-            }
-        }
-        Event::Mouse(event) => {
-            handle_mouse_event(event, app);
-        }
-        Event::Resize(width, height) => {
-            app.resize(width, height);
-        }
-        _ => (),
-    }
-
-    app.first_pane.update();
-    app.second_pane.update();
-
-    app.path_trail.load_path(&app.first_pane.current_path);
-    */
-
-    if !poll(Duration::from_millis(1000))? {
-        return Ok(false);
-    }
+    app.top_bar.path_breadcrumbs.hovered_path = None;
 
     match read()? {
         Event::Key(event) => {
@@ -52,10 +27,9 @@ pub fn handle_events(app: &mut app::App) -> Result<bool> {
             handle_mouse_event(app, event);
         }
         Event::Resize(width, height) => {
-            println!("ldkjsfldkjsfldsj");
             app.resize(width, height);
         }
-        _ => (),
+        _ => {}
     }
 
     Ok(false)
@@ -64,26 +38,58 @@ pub fn handle_events(app: &mut app::App) -> Result<bool> {
 fn handle_mouse_event(app: &mut app::App, event: MouseEvent) {
 
     if let Some(component) = app.get_component_at(event.row, event.column) {
-        // Clear the breadcrumb
-        app.top_bar.path_breadcrumbs.hovered_path = None;
 
         match component {
             app::Component::TopBar => {
                 handle_mouse_event_top_bar(app, event);
             }
-            _ => (),
+            app::Component::FilePanes => {
+                handle_mouse_event_file_panes(app, event);
+            }
+            _ => {}
         }
-
     }
 }
 
 fn handle_mouse_event_top_bar(app: &mut app::App, event: MouseEvent) {
     let breadcrumbs = &mut app.top_bar.path_breadcrumbs;
-    if let Some(index) = breadcrumbs.get_hovered_index(event) {
-        breadcrumbs.hovered_path = Some(index);
-    }
-    else {
-        breadcrumbs.hovered_path = None;
+    breadcrumbs.hovered_path = breadcrumbs.get_hovered_index(event);
+}
+
+fn handle_mouse_event_file_panes(app: &mut app::App, event: MouseEvent) {
+    let row = event.row;
+    let col = event.column;
+
+    let pane_index = app.file_panes.get_pane_index_at(row, col);
+    let file_panes = &mut app.file_panes.panes;
+
+    match event.kind {
+        MouseEventKind::Up(MouseButton::Left) => {
+            app.file_panes.focused = Some(pane_index);
+            let file_index = file_panes[pane_index].get_file_index_at(row, col);
+            file_panes[pane_index].select(Some(file_index));
+
+            let entry = &file_panes[pane_index].entries[file_index];
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_dir() {
+                    app.file_panes.open(&entry.path(), pane_index + 1);
+                }
+            }
+        }
+        MouseEventKind::Up(MouseButton::Right) => {
+        }
+        MouseEventKind::Drag(MouseButton::Left) => {
+            // TODO: Dragging files
+        }
+        MouseEventKind::ScrollUp => {
+            file_panes[pane_index].scroll_up();
+        }
+        MouseEventKind::ScrollDown => {
+            file_panes[pane_index].scroll_down();
+        }
+        _ => {
+            // TODO: Hovering (do I even want this?)
+        }
     }
 }
 

@@ -29,9 +29,5 @@ impl TopBar {
     pub fn resize(&mut self, rect: Rect) {
         self.rect = rect;
     }
-
-    pub fn contains_pos(&self, row: u16, _col: u16) -> bool {
-        return row <= self.rect.height;
-    }
 }
 

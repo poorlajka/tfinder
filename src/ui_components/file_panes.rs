@@ -1,4 +1,5 @@
 use crate::PathBuf;
+use crate::Path;
 use ratatui::prelude::Rect;
 use crate::ui_components::{
     file_pane::FilePane,
@@ -8,8 +9,8 @@ use crate::ui_components::{
 pub struct FilePanes {
     pub panes: Vec<FilePane>,
     pub preview: Option<PreviewPane>,
-    pub focused: Option<u32>,
-    pub hovered: Option<u32>,
+    pub focused: Option<usize>,
+    pub hovered: Option<usize>,
     pub rect: Rect,
 }
 
@@ -33,14 +34,33 @@ impl FilePanes {
 
     pub fn resize(&mut self, rect: Rect) {
         self.rect = rect;
-        let pane_width = self.rect.width / 4;
         for (i, mut file_pane) in &mut self.panes.iter_mut().enumerate() {
-            file_pane.resize(Rect::new(
-                self.rect.x + pane_width * i as u16,
-                self.rect.y,
-                pane_width,
-                self.rect.height,
-            ));
+            file_pane.resize(Self::rect_from_pane_index(self.rect, i));
         }
+    }
+
+    pub fn open(&mut self, path: &PathBuf, pane_index: usize) {
+        if self.panes.len() < pane_index + 1 {
+            self.panes.push(FilePane::new_empty(Self::rect_from_pane_index(self.rect, pane_index)));
+        }
+        self.panes[pane_index].load_path(path);
+        for pane in &mut self.panes.iter_mut().skip(pane_index) {
+
+        }
+
+    }
+
+    fn rect_from_pane_index(rect: Rect, pane_index: usize) -> Rect {
+        let pane_width = rect.width / 4;
+        Rect::new(
+            rect.x + pane_width * pane_index as u16,
+            rect.y,
+            pane_width,
+            rect.height,
+        )
+    }
+
+    pub fn get_pane_index_at(&self, row: u16, col: u16) -> usize {
+        return 0;
     }
 }

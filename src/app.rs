@@ -88,10 +88,10 @@ impl App {
     }
 
     pub fn get_component_at(&self, row: u16, column: u16) -> Option<Component> {
-        if self.top_bar.contains_pos(row, column) {
+        if row < self.top_bar.rect.height {
             return Some(Component::TopBar);
         }
-        if self.bot_bar.contains_pos(row, column) {
+        if row > self.bot_bar.rect.y {
             return Some(Component::BotBar);
         }
 

@@ -84,7 +84,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, _tick_rate: Duration) -> Resu
     let mut app = app::App::new(terminal.size()?, &env::current_dir()?);
 
     loop {
-        let _ = terminal.draw(|frame| render::render_app(frame, &mut app, &render_config));
+        let _ = terminal.draw(|frame| render::render_app(frame, &app, &render_config));
 
         let quit = event_handler::handle_events(&mut app)?;
 

@@ -19,13 +19,14 @@ use crate::ui_components::{
     top_bar::TopBar,
     bot_bar::BotBar,
     file_panes::FilePanes,
+    fav_pane::FavPane,
     preview::{Preview, PreviewType},
 };
 
 use ratatui_image::StatefulImage; 
 
 
-pub fn render_app(frame: &mut Frame, app: &mut app::App, render_config: &config::Config) {
+pub fn render_app(frame: &mut Frame, app: &app::App, render_config: &config::Config) {
 
     render_top_bar(
         frame, 
@@ -39,11 +40,17 @@ pub fn render_app(frame: &mut Frame, app: &mut app::App, render_config: &config:
         &render_config.colors.prompt_bar
     );
 
-    render_file_panes (
+    render_fav_pane(
+        frame,
+        &app.fav_pane,
+    );
+
+    render_file_panes(
         frame, 
         &app.file_panes, 
         &render_config.colors.file_panes
     );
+
 
     //render_pane(frame, &app.first_pane, &render_config.colors.file_panes, app.focus == app::Component::FirstPane);
     //render_pane(frame, &app.second_pane, &render_config.colors.file_panes, app.focus == app::Component::SecondPane);
@@ -101,39 +108,42 @@ fn render_bot_bar(frame: &mut Frame, bot_bar: &BotBar, colors: &config::PromptBa
     frame.render_widget(current_prompt, area);
 }
 
+fn render_fav_pane(frame: &mut Frame, fav_pane: &FavPane) {
+}
+
 fn render_file_panes(frame: &mut Frame, file_panes: &FilePanes, colors: &config::FilePanesColors) {
 
     for file_pane in &file_panes.panes {
-        render_pane(frame, file_pane, colors, false)
+        render_pane(frame, file_pane, colors)
 
     }
 }
 
-pub fn render_pane(frame: &mut Frame, pane: &file_pane::FilePane, colors: &config::FilePanesColors, is_focused: bool) {
+pub fn render_pane(frame: &mut Frame, pane: &file_pane::FilePane, colors: &config::FilePanesColors) {
 
-    frame.render_stateful_widget(
-        get_pane_list(&pane, colors, is_focused),
+    frame.render_widget(
+        get_pane_list(&pane, colors),
         pane.rect,
-        &mut pane.files.state.clone(),
     );
 }
 
-fn get_pane_list(file_pane: &file_pane::FilePane, colors: &config::FilePanesColors, is_focused: bool) -> List<'static> {
-    let color = if is_focused {
-        colors.selected_focus
-    }
-    else {
-        colors.selected_no_focus
-    };
+fn get_pane_list(file_pane: &file_pane::FilePane, colors: &config::FilePanesColors) -> List<'static> {
+    let color = colors.selected_no_focus;
 
     let first_pane_files: Vec<ListItem> = file_pane
-        .files
-        .items
+        .entries
         .iter()
-        .map(|i| {
-            let lines = vec![Line::from(i.to_owned().0)];
-            ListItem::new(lines).style(Style::default().fg(colors.text_default))
+        .enumerate()
+        .map(|(i, f)| {
+            let lines = vec![Line::from(f.to_owned().file_name().into_string().unwrap_or(String::from("")))];
+            if file_pane.selected == Some(i) {
+                ListItem::new(lines).style(Style::default().fg(colors.text_selected).bg(colors.selected_focus))
+            } 
+            else {
+                ListItem::new(lines).style(Style::default().fg(colors.text_default))
+            }
         })
+        .skip(file_pane.scroll_offset)
         .collect();
 
     List::new(first_pane_files)

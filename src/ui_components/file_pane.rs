@@ -5,12 +5,13 @@ use crate::Rect;
 use crate::PathBuf;
 use crate::DirEntry;
 
-
 pub struct FilePane {
-    pub files: StatefulList<(String, usize)>,
     pub entries: Vec<DirEntry>,
     pub current_path: Option<PathBuf>,
     pub rect: Rect,
+    pub state: ListState,
+    pub scroll_offset: usize,
+    pub selected: Option<usize>,
 }
 
 impl FilePane {
@@ -23,10 +24,12 @@ impl FilePane {
 
     pub fn new_empty(rect: Rect) -> Self {
         FilePane {
-            files: StatefulList::with_items(Vec::new()),
             entries: Vec::new(),
             current_path: None,
             rect,
+            state: ListState::default(),
+            scroll_offset: 0,
+            selected: None,
         }
     }
 
@@ -34,18 +37,36 @@ impl FilePane {
         self.rect = rect;
     }
 
-    pub fn get_index(&mut self, event: MouseEvent) -> usize {
-        let offset = self.files.state.offset();
-        return event.row as usize - 2 + offset;
+    pub fn select(&mut self, index: Option<usize>) {
+        self.selected = index;
     }
 
+    pub fn scroll_up(&mut self) {
+        if self.scroll_offset > 0 {
+            self.scroll_offset -= 1;
+        }
+    }
+
+    pub fn scroll_down(&mut self) {
+        if self.scroll_offset + 1 < self.entries.len() {
+            self.scroll_offset += 1;
+        }
+    }
+
+    pub fn get_file_index_at(&mut self, row: u16, col: u16) -> usize {
+        let offset = self.scroll_offset;
+        return row as usize - 2 + offset;
+    }
+
+    /*
+        TODO: Refactor this function
+    */
     pub fn load_path(&mut self, path: &PathBuf) {
         self.current_path = Some(path.clone());
+        self.selected = None;
 
         self.entries.clear();
         let _ = finder::get_folders(&mut self.entries, &path);
-
-        self.files.items.clear();
 
         let remove = Vec::new();
 
@@ -79,7 +100,6 @@ impl FilePane {
                 }
                 None => (),
             }
-            self.files.items.push((item_name, i))
         }
         for i in remove {
             if i < self.entries.len() {
@@ -87,64 +107,10 @@ impl FilePane {
             }
         }
     }
+
     pub fn update(&mut self) {
         if let Some(path) = &self.current_path {
             self.load_path(&path.clone());
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StatefulList<T> {
-    pub state: ListState,
-    pub items: Vec<T>,
-}
-
-impl<T> StatefulList<T> {
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
-        StatefulList {
-            state: ListState::default(),
-            items,
-        }
-    }
-
-    pub fn next(&mut self, height: u16) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-
-        if i > (height as usize + self.state.offset()) {
-            *self.state.offset_mut() += 1;
-        }
-    }
-
-    pub fn previous(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-
-        if i < (self.state.offset()) {
-            *self.state.offset_mut() -= 1;
-        }
-    }
-
-    pub fn unselect(&mut self) {
-        self.state.select(None);
     }
 }
