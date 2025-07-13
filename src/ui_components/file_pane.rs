@@ -7,7 +7,7 @@ use crate::DirEntry;
 
 pub struct FilePane {
     pub entries: Vec<DirEntry>,
-    pub current_path: Option<PathBuf>,
+    pub current_path: PathBuf,
     pub rect: Rect,
     pub state: ListState,
     pub scroll_offset: usize,
@@ -25,7 +25,7 @@ impl FilePane {
     pub fn new_empty(rect: Rect) -> Self {
         FilePane {
             entries: Vec::new(),
-            current_path: None,
+            current_path: PathBuf::new(),
             rect,
             state: ListState::default(),
             scroll_offset: 0,
@@ -48,21 +48,29 @@ impl FilePane {
     }
 
     pub fn scroll_down(&mut self) {
-        if self.scroll_offset + 1 < self.entries.len() {
+        if self.scroll_offset + 1 < self.entries.len() 
+            && self.entries.len() - self.scroll_offset >= self.rect.height as usize {
             self.scroll_offset += 1;
         }
     }
 
-    pub fn get_file_index_at(&mut self, row: u16, col: u16) -> usize {
+    pub fn get_file_index_at(&mut self, row: u16, col: u16) -> Option<usize> {
         let offset = self.scroll_offset;
-        return row as usize - 2 + offset;
+        let file_index = (row - self.rect.y) as usize + offset;
+
+        if file_index < self.entries.len() {
+            Some(file_index)
+        }
+        else {
+            None
+        }
     }
 
     /*
         TODO: Refactor this function
     */
     pub fn load_path(&mut self, path: &PathBuf) {
-        self.current_path = Some(path.clone());
+        self.current_path = path.clone();
         self.selected = None;
 
         self.entries.clear();
@@ -109,8 +117,6 @@ impl FilePane {
     }
 
     pub fn update(&mut self) {
-        if let Some(path) = &self.current_path {
-            self.load_path(&path.clone());
-        }
+        self.load_path(&self.current_path.clone());
     }
 }

@@ -28,7 +28,7 @@ impl AppLayout {
     fn new(width: u16, height: u16) -> Self {
         let top_bar_height = 2;
         let bot_bar_height = 1;
-        let fav_pane_width = 0;
+        let fav_pane_width = 15;
 
         AppLayout {
             top_bar: Rect {

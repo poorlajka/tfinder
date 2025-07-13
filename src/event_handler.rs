@@ -54,26 +54,60 @@ fn handle_mouse_event(app: &mut app::App, event: MouseEvent) {
 fn handle_mouse_event_top_bar(app: &mut app::App, event: MouseEvent) {
     let breadcrumbs = &mut app.top_bar.path_breadcrumbs;
     breadcrumbs.hovered_path = breadcrumbs.get_hovered_index(event);
+
+    match event.kind {
+        MouseEventKind::Up(MouseButton::Left) => {
+            if let Some(path_index) = breadcrumbs.hovered_path {
+                let path = &breadcrumbs.paths[path_index].1;
+                app.file_panes.show_dir(&path, 0);
+                breadcrumbs.load_path(&path.clone());
+            }
+        }
+        _ => {}
+    }
 }
 
 fn handle_mouse_event_file_panes(app: &mut app::App, event: MouseEvent) {
     let row = event.row;
     let col = event.column;
 
-    let pane_index = app.file_panes.get_pane_index_at(row, col);
-    let file_panes = &mut app.file_panes.panes;
+    let pane_index_option = app.file_panes.get_pane_index_at(row, col);
+    if pane_index_option.is_none() {
+        return;
+    }
+    let pane_index = pane_index_option
+        .expect("I should be returning above in case of pane_index being None");
+    let file_panes = &mut app.file_panes;
 
     match event.kind {
         MouseEventKind::Up(MouseButton::Left) => {
-            app.file_panes.focused = Some(pane_index);
-            let file_index = file_panes[pane_index].get_file_index_at(row, col);
-            file_panes[pane_index].select(Some(file_index));
 
-            let entry = &file_panes[pane_index].entries[file_index];
-            if let Ok(file_type) = entry.file_type() {
-                if file_type.is_dir() {
-                    app.file_panes.open(&entry.path(), pane_index + 1);
+            file_panes.focused = Some(pane_index);
+            if let Some(file_index) = file_panes.panes[pane_index].get_file_index_at(row, col) {
+                file_panes.panes[pane_index].select(Some(file_index));
+
+                let entry = &file_panes.panes[pane_index].entries[file_index];
+                if let Ok(file_type) = entry.file_type() {
+
+                    if file_type.is_dir() {
+                        app.top_bar.path_breadcrumbs.load_path(&entry.path());
+                        file_panes.show_dir(&entry.path(), pane_index + 1);
+                    }
+                    else if file_type.is_file() {
+                        app.top_bar.path_breadcrumbs.load_path(
+                            &file_panes.panes[pane_index].current_path
+                        );
+                        file_panes.show_file(&entry.path(), pane_index + 1);
+                    }
                 }
+            }
+            else {
+                file_panes.close_from(pane_index + 1);
+                file_panes.panes[pane_index].select(None);
+
+                app.top_bar.path_breadcrumbs.load_path(
+                    &file_panes.panes[pane_index].current_path
+                );
             }
         }
         MouseEventKind::Up(MouseButton::Right) => {
@@ -82,10 +116,10 @@ fn handle_mouse_event_file_panes(app: &mut app::App, event: MouseEvent) {
             // TODO: Dragging files
         }
         MouseEventKind::ScrollUp => {
-            file_panes[pane_index].scroll_up();
+            file_panes.panes[pane_index].scroll_up();
         }
         MouseEventKind::ScrollDown => {
-            file_panes[pane_index].scroll_down();
+            file_panes.panes[pane_index].scroll_down();
         }
         _ => {
             // TODO: Hovering (do I even want this?)

@@ -10,6 +10,12 @@ use crate::{
     Rect,
     Style,
     Paragraph,
+    Color,
+    BorderType,
+    Alignment,
+    Constraint,
+    Layout,
+    Direction,
 };
 use crate::config;
 use crate::ui_components::{
@@ -21,6 +27,7 @@ use crate::ui_components::{
     file_panes::FilePanes,
     fav_pane::FavPane,
     preview::{Preview, PreviewType},
+    preview_pane::PreviewPane,
 };
 
 use ratatui_image::StatefulImage; 
@@ -31,25 +38,34 @@ pub fn render_app(frame: &mut Frame, app: &app::App, render_config: &config::Con
     render_top_bar(
         frame, 
         &app.top_bar,
-        &render_config.colors.path_trail
+        &render_config.colors.path_trail,
     );
 
     render_bot_bar(
         frame, 
         &app.bot_bar, 
-        &render_config.colors.prompt_bar
+        &render_config.colors.prompt_bar,
     );
 
     render_fav_pane(
         frame,
         &app.fav_pane,
+        &render_config.colors.file_panes,
     );
 
     render_file_panes(
         frame, 
         &app.file_panes, 
-        &render_config.colors.file_panes
+        &render_config.colors.file_panes,
     );
+
+    if let Some(preview) = &app.file_panes.preview {
+        render_preview_pane(
+            frame, 
+            preview, 
+            &render_config.colors.file_panes,
+        );
+    }
 
 
     //render_pane(frame, &app.first_pane, &render_config.colors.file_panes, app.focus == app::Component::FirstPane);
@@ -108,36 +124,81 @@ fn render_bot_bar(frame: &mut Frame, bot_bar: &BotBar, colors: &config::PromptBa
     frame.render_widget(current_prompt, area);
 }
 
-fn render_fav_pane(frame: &mut Frame, fav_pane: &FavPane) {
+fn render_fav_pane(frame: &mut Frame, fav_pane: &FavPane, colors: &config::FilePanesColors) {
+    let list = List::new(Vec::<ListItem>::new())
+        .block(Block::default().borders(Borders::RIGHT))
+        .style(Style::default().fg(colors.border))
+        .highlight_style(
+            Style::default()
+                .bg(colors.background)
+                .fg(colors.text_selected)
+                .add_modifier(Modifier::ITALIC)
+                .add_modifier(Modifier::BOLD),
+        );
+    frame.render_widget(
+        list,
+        fav_pane.rect,
+    )
 }
 
 fn render_file_panes(frame: &mut Frame, file_panes: &FilePanes, colors: &config::FilePanesColors) {
 
-    for file_pane in &file_panes.panes {
-        render_pane(frame, file_pane, colors)
-
+    for (i, file_pane) in file_panes.panes.iter().enumerate() {
+        render_pane(frame, file_pane, colors, file_panes.focused == Some(i));
     }
 }
 
-pub fn render_pane(frame: &mut Frame, pane: &file_pane::FilePane, colors: &config::FilePanesColors) {
+pub fn render_pane(frame: &mut Frame, pane: &file_pane::FilePane, colors: &config::FilePanesColors, is_focused: bool) {
 
     frame.render_widget(
-        get_pane_list(&pane, colors),
+        get_pane_list(&pane, colors, is_focused),
         pane.rect,
     );
 }
 
-fn get_pane_list(file_pane: &file_pane::FilePane, colors: &config::FilePanesColors) -> List<'static> {
-    let color = colors.selected_no_focus;
+fn trim_filename(name: &String) -> String {
+    if name.len() < 16 {
+        name.to_string()
+    }
+    else {
+        let start = name
+            .chars()
+            .take(8)
+            .collect::<String>();
+        let end = name
+            .chars()
+            .rev()
+            .take(8)
+            .collect::<String>()
+            .chars()
+            .rev()
+            .collect::<String>();
+
+        format!("{}{}{}", start, "...", end)
+    }
+}
+
+fn get_pane_list(file_pane: &file_pane::FilePane, colors: &config::FilePanesColors, is_focused: bool) -> List<'static> {
+    let selected_bg = if is_focused {
+        colors.selected_focus
+    }
+    else {
+        colors.selected_no_focus
+    };
 
     let first_pane_files: Vec<ListItem> = file_pane
         .entries
         .iter()
         .enumerate()
         .map(|(i, f)| {
-            let lines = vec![Line::from(f.to_owned().file_name().into_string().unwrap_or(String::from("")))];
+            let lines = vec![Line::from(trim_filename(
+                &f.to_owned()
+                .file_name()
+                .into_string()
+                .unwrap_or(String::from(""))
+            ))];
             if file_pane.selected == Some(i) {
-                ListItem::new(lines).style(Style::default().fg(colors.text_selected).bg(colors.selected_focus))
+                ListItem::new(lines).style(Style::default().fg(colors.text_selected).bg(selected_bg))
             } 
             else {
                 ListItem::new(lines).style(Style::default().fg(colors.text_default))
@@ -151,14 +212,42 @@ fn get_pane_list(file_pane: &file_pane::FilePane, colors: &config::FilePanesColo
         .style(Style::default().fg(colors.border))
         .highlight_style(
             Style::default()
-                .bg(color)
+                .bg(selected_bg)
                 .fg(colors.text_selected)
                 .add_modifier(Modifier::ITALIC)
                 .add_modifier(Modifier::BOLD),
         )
 }
 
+fn render_preview_pane(frame: &mut Frame, preview_pane: &PreviewPane, colors: &config::FilePanesColors) {
 
+    let vertical_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(40), // Top space
+            Constraint::Percentage(20), // Widget space
+            Constraint::Percentage(40), // Bottom space
+        ])
+        .split(preview_pane.rect);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(40), // left part
+            Constraint::Percentage(20), // middle band (to simulate center offset)
+            Constraint::Percentage(40), // right part
+        ])
+        .split(vertical_chunks[1]);
+
+    let p = Paragraph::new(format!("{}\n{}", preview_pane.file_name, preview_pane.size))
+    .style(Style::default().fg(Color::Yellow))
+    .block(
+        Block::default()
+    )
+    .alignment(Alignment::Left);
+
+    frame.render_widget(p, chunks[1]);
+}
 
 /*
 fn render_preview(frame: &mut Frame, preview: &mut Preview) {
